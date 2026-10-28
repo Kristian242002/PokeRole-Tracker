@@ -55,4 +55,9 @@ Gli sprite sono caricati dal browser da `raw.githubusercontent.com` (non sono ne
 ## Deploy
 
 Vercel (progetto collegato al repository GitHub) con Neon Postgres e Vercel Blob; vedi §17 della specifica.
+
+Le migrazioni partono da sole a ogni deploy: Vercel esegue lo script `vercel-build`
+(`drizzle-kit migrate && next build`). `drizzle.config.ts` usa `DATABASE_URL_UNPOOLED`
+(connessione diretta di Neon) e, se manca, `DATABASE_URL`; l'app usa sempre `DATABASE_URL` (pooled).
+In Vercel lascia vuoto il Build Command del progetto, altrimenti `vercel-build` viene ignorato.
 Pokémon è un marchio di Nintendo / Game Freak / The Pokémon Company; questo è un progetto amatoriale non ufficiale.
