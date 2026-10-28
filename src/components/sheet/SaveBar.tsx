@@ -1,5 +1,7 @@
 "use client";
 
+import { SHOW_WARNINGS_EVENT } from "./WarningsBox";
+
 export type SaveStatus = "saved" | "dirty" | "saving" | "error";
 
 const TEXT: Record<SaveStatus, string> = {
@@ -37,6 +39,7 @@ export function SaveBar({
         <a
           href="#avvisi"
           aria-label={`Vai agli avvisi (${warningCount})`}
+          onClick={() => window.dispatchEvent(new Event(SHOW_WARNINGS_EVENT))}
           className="inline-flex h-10 min-w-[52px] items-center justify-center gap-1 rounded-full bg-warn-bg px-2.5 font-extrabold text-warn-ink no-underline shadow-[inset_0_0_0_1px_var(--warn-line)] hover:text-warn-ink"
         >
           <svg

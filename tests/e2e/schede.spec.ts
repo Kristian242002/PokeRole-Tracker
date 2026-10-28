@@ -35,6 +35,12 @@ test("schede: allenatore, Pokémon, rank up, HP, evoluzione, mosse e accessi", a
     "Rank Standard → Advanced",
   );
 
+  // Il riquadro avvisi si chiude e si riapre dal contatore in basso
+  await page.getByRole("button", { name: "Chiudi gli avvisi" }).click();
+  await expect(page.getByRole("status", { name: "Avvisi" })).toHaveCount(0);
+  await page.getByRole("link", { name: /Vai agli avvisi/ }).click();
+  await expect(page.getByRole("status", { name: "Avvisi" })).toBeVisible();
+
   // Danno −1 → ricarica → HP persistiti (Barboach: HP base 3 + Vitality 1 = 4)
   await expect(page.getByTestId("hp-value")).toContainText("4");
   const saved = page.waitForResponse((r) => r.request().method() === "POST" && r.ok());
