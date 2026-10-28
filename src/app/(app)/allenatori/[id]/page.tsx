@@ -8,6 +8,7 @@ import { TrainerSheet, type TeamMember, type TrainerSheetData } from "@/componen
 import { trainerAccess } from "@/lib/access";
 import { dexEntries } from "@/lib/dex";
 import { maxHp, shownCurrent } from "@/lib/rules";
+import { sheetContext } from "@/lib/sheet-context";
 import { speciesSummaries } from "@/lib/species";
 
 type Params = { params: Promise<{ id: string }> };
@@ -21,6 +22,7 @@ export default async function TrainerPage({ params }: Params) {
   if (!access) notFound();
   const { trainer, mode } = access;
   const readOnly = mode !== "owner";
+  const { campaign, back } = await sheetContext(trainer, mode, "trainers");
 
   const rows = await db
     .select()
@@ -65,6 +67,8 @@ export default async function TrainerPage({ params }: Params) {
       team={team}
       dex={readOnly ? [] : await dexEntries(user.id)}
       readOnly={readOnly}
+      campaign={campaign}
+      back={back}
     />
   );
 }

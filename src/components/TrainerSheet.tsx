@@ -24,6 +24,7 @@ import { RankIcon } from "./RankIcon";
 import { Sprite } from "./Sprite";
 import { TrainerPortrait } from "./TrainerPortrait";
 import { typeStyle } from "./TypeBadge";
+import { CampaignField, type TrainerCampaign } from "./sheet/CampaignField";
 import { usePlayState, useSheetDraft } from "./sheet/hooks";
 import { PlayPanel } from "./sheet/PlayPanel";
 import { SaveBar } from "./sheet/SaveBar";
@@ -37,6 +38,12 @@ export interface TrainerSheetData extends TrainerUpdate {
   currentWill: number | null;
   statuses: string[];
   locked: boolean;
+}
+
+export interface SheetBack {
+  href: string;
+  label: string;
+  section: string;
 }
 
 export interface TeamMember {
@@ -56,11 +63,15 @@ export function TrainerSheet({
   team,
   dex,
   readOnly,
+  campaign,
+  back,
 }: {
   trainer: TrainerSheetData;
   team: TeamMember[];
   dex: DexEntry[];
   readOnly: boolean;
+  campaign: TrainerCampaign;
+  back: SheetBack;
 }) {
   const id = trainer.id;
   const sheet = useSheetDraft<TrainerUpdate>(
@@ -134,11 +145,7 @@ export function TrainerSheet({
       <SheetTopBar
         eyebrow="Scheda allenatore"
         title={d.name || "Senza nome"}
-        back={{
-          href: "/allenatori",
-          label: "Torna a I miei allenatori",
-          section: "I miei allenatori",
-        }}
+        back={back}
         locked={locked}
         readOnly={readOnly}
         onToggleLock={() => play.update({ locked: !locked })}
@@ -369,6 +376,9 @@ export function TrainerSheet({
                 onChange={(e) => set("backpack", e.target.value)}
               />
             </section>
+            <div className="order-8 lg:order-none">
+              <CampaignField trainerId={id} campaign={campaign} readOnly={readOnly} />
+            </div>
             <section className="panel order-8 gap-2 lg:order-none">
               <label htmlFor="t-notes" className="h2">
                 Note

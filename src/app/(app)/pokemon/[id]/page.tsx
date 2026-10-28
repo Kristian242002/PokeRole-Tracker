@@ -9,6 +9,7 @@ import { PokemonSheet, type SheetSpecies } from "@/components/PokemonSheet";
 import { pokemonAccess } from "@/lib/access";
 import { ABILITIES_BY_NAME, MOVES, NATURES, findMove } from "@/lib/data";
 import { evolutionMethod } from "@/lib/labels";
+import { sheetContext } from "@/lib/sheet-context";
 import { getSpecies, speciesIdByName, visibleFanmade } from "@/lib/species";
 
 type Params = { params: Promise<{ id: string }> };
@@ -109,6 +110,7 @@ export default async function PokemonPage({ params }: Params) {
       trainers={readOnly ? [{ id: trainer.id, name: trainer.name, rank: trainer.rank }] : siblings}
       moves={moves}
       readOnly={readOnly}
+      back={(await sheetContext(trainer, mode, "pokemon")).back}
     />
   );
 }

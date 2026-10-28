@@ -53,3 +53,12 @@ export async function ownedPokemon(pokemonId: string, userId: string) {
   const access = await pokemonAccess(pokemonId, userId);
   return access?.mode === "owner" ? access : null;
 }
+
+export type Campaign = typeof campaigns.$inferSelect;
+
+/** Campagna di cui l'utente è master; null = nessun accesso (404). */
+export async function masterCampaign(campaignId: string, userId: string): Promise<Campaign | null> {
+  if (!isUuid(campaignId)) return null;
+  const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, campaignId)).limit(1);
+  return campaign?.masterId === userId ? campaign : null;
+}

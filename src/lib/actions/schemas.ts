@@ -72,3 +72,13 @@ export const pokemonUpdateSchema = z.object({
   notes: text(10000, "Note"),
 });
 export type PokemonUpdate = z.infer<typeof pokemonUpdateSchema>;
+
+export const campaignSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Scrivi il nome della campagna")
+    .max(80, "Nome: massimo 80 caratteri"),
+  description: z.string().trim().max(2000, "Descrizione: massimo 2000 caratteri"),
+});
+export type CampaignInput = z.infer<typeof campaignSchema>;

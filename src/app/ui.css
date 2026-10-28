@@ -449,7 +449,8 @@
     font-weight: 800;
     cursor: pointer;
   }
-  .status-chip[aria-pressed="true"] {
+  .status-chip[aria-pressed="true"],
+  .status-chip[data-active="true"] {
     background: var(--status-color);
     border-color: transparent;
     color: #fff;

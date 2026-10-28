@@ -75,6 +75,7 @@ export interface PokemonSheetProps {
   /** Tutte le mosse (per "Aggiungi mossa") con effetto per quelle già note. */
   moves: MoveSummary[];
   readOnly: boolean;
+  back: { href: string; label: string; section: string };
 }
 
 function toDraft(p: Pokemon): PokemonUpdate {
@@ -233,7 +234,7 @@ export function PokemonSheet(props: PokemonSheetProps) {
       <SheetTopBar
         eyebrow="Scheda Pokémon"
         title={`${displayName} · ${species.name}`}
-        back={{ href: "/pokemon/miei", label: "Torna a I miei Pokémon", section: "I miei Pokémon" }}
+        back={props.back}
         locked={locked}
         readOnly={readOnly}
         onToggleLock={() => play.update({ locked: !locked })}

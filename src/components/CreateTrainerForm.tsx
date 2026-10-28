@@ -3,15 +3,26 @@
 import { useActionState } from "react";
 import { createTrainer, type CreateTrainerState } from "@/lib/actions/trainers";
 
-/** "Crea allenatore": nome → crea e apre la scheda (§10.5). */
-export function CreateTrainerForm() {
-  const [state, action, pending] = useActionState<CreateTrainerState, FormData>(createTrainer, {
+type CreateAction = (prev: CreateTrainerState, formData: FormData) => Promise<CreateTrainerState>;
+
+/**
+ * "Crea allenatore": nome → crea e apre la scheda (§10.5).
+ * Con `action` crea invece un allenatore del master in una campagna.
+ */
+export function CreateTrainerForm({
+  action: create = createTrainer,
+  label = "Nuovo allenatore",
+}: {
+  action?: CreateAction;
+  label?: string;
+}) {
+  const [state, action, pending] = useActionState<CreateTrainerState, FormData>(create, {
     name: "",
   });
   return (
     <form action={action} className="flex flex-col gap-2 lg:max-w-xl">
       <label htmlFor="new-trainer" className="label">
-        Nuovo allenatore
+        {label}
       </label>
       <div className="flex gap-2">
         <input
