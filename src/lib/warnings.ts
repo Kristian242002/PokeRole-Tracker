@@ -8,25 +8,33 @@ import {
   POKEMON_SKILLS,
   TRAINER_ATTRIBUTES,
   TRAINER_SKILLS,
+  SOCIAL_ATTRIBUTES,
+  attributeLimitBonus,
   attributePointsSpent,
   maxHp,
   maxWill,
   moveLabel,
   moveLimit,
+  rankIndex,
   rulesFor,
   skillKey,
   skillPointsSpent,
+  socialPointsSpent,
   type PokemonAttribute,
+  type SocialAttribute,
   type SheetKind,
 } from "./rules";
 
 export interface SheetForWarnings {
   rank: string;
   attributes: Partial<Record<PokemonAttribute, number>>;
+  social: Partial<Record<SocialAttribute, number>>;
   skills: Record<string, number>;
   currentHp: number | null;
   currentWill: number | null;
   moves?: string[];
+  /** Rank dell'allenatore: un Pokémon non può superarlo (manuale, p. 31). */
+  trainerRank?: string;
 }
 
 export interface SpeciesForWarnings {
@@ -55,13 +63,35 @@ export function computeWarnings(
   const attrs = kind === "trainer" ? TRAINER_ATTRIBUTES : POKEMON_ATTRIBUTES;
   const values = Object.fromEntries(attrs.map((a) => [a, sheet.attributes[a] ?? 0]));
 
-  // Punti attributo e skill
+  // Punti attributo, sociali e skill
   const base =
     kind === "pokemon" && species
       ? Object.fromEntries(attrs.map((a) => [a, species.attributes[a][0]]))
       : 1;
   budget(lines, attributePointsSpent(values, base), rules.attributePoints, "attributo");
+  budget(lines, socialPointsSpent(sheet.social), rules.socialPoints, "sociali");
   budget(lines, skillPointsSpent(sheet.skills), rules.skillPoints, "skill");
+
+  // Rank del Pokémon oltre quello dell'allenatore
+  if (
+    kind === "pokemon" &&
+    sheet.trainerRank &&
+    rankIndex(sheet.rank) > rankIndex(sheet.trainerRank)
+  ) {
+    lines.push(
+      `Il rank del Pokémon (${sheet.rank}) supera quello dell'allenatore (${sheet.trainerRank})`,
+    );
+  }
+
+  // Attributi oltre il limite (allenatore 5, sociali 5; Champion +2)
+  const bonus = attributeLimitBonus(sheet.rank);
+  const checkMax = (label: string, v: number, max: number) => {
+    if (v > max) lines.push(`${label} è a ${v}, ma il massimo è ${max}`);
+  };
+  if (kind === "trainer") {
+    for (const a of TRAINER_ATTRIBUTES) checkMax(ATTRIBUTE_LABEL[a], values[a], 5 + bonus);
+  }
+  for (const a of SOCIAL_ATTRIBUTES) checkMax(ATTRIBUTE_LABEL[a], sheet.social[a] ?? 1, 5 + bonus);
 
   // Skill sopra il limite del rank
   for (const name of kind === "trainer" ? TRAINER_SKILLS : POKEMON_SKILLS) {
@@ -74,7 +104,8 @@ export function computeWarnings(
   // Attributi del Pokémon fuori dai limiti della specie
   if (kind === "pokemon" && species) {
     for (const a of POKEMON_ATTRIBUTES) {
-      const [min, max] = species.attributes[a];
+      const [min, speciesMax] = species.attributes[a];
+      const max = speciesMax + bonus;
       const v = values[a];
       const label = ATTRIBUTE_LABEL[a];
       if (v > max) lines.push(`${label} è a ${v}, ma il massimo della specie è ${max}`);
@@ -100,8 +131,8 @@ export function computeWarnings(
   }
 
   // HP e Will attuali sopra il massimo
-  const hpMax = maxHp(kind, values.vitality, species?.baseHP ?? 0);
-  const willMax = maxWill(values.insight);
+  const hpMax = maxHp(kind, values.vitality, species?.baseHP ?? 0, sheet.rank);
+  const willMax = maxWill(values.insight, sheet.rank);
   if (sheet.currentHp !== null && sheet.currentHp > hpMax) {
     lines.push(`HP attuali (${sheet.currentHp}) sopra il massimo (${hpMax})`);
   }

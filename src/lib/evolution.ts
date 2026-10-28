@@ -23,6 +23,7 @@ export interface EvolvablePokemon {
   ability: string;
   currentHp: number | null;
   currentWill: number | null;
+  rank?: string;
 }
 
 export interface EvolutionResult<P> {
@@ -52,8 +53,8 @@ export function evolve<P extends EvolvablePokemon>(
   const available = [...to.abilities, ...(to.hiddenAbility ? [to.hiddenAbility] : [])];
   const ability = available.includes(pokemon.ability) ? pokemon.ability : (to.abilities[0] ?? "");
 
-  const hpMax = maxHp("pokemon", attributes.vitality, to.baseHP);
-  const willMax = maxWill(attributes.insight);
+  const hpMax = maxHp("pokemon", attributes.vitality, to.baseHP, pokemon.rank);
+  const willMax = maxWill(attributes.insight, pokemon.rank);
   const cap = (v: number | null, max: number) => (v === null ? null : Math.min(v, max));
 
   const parts = [`Evoluto da ${from.name} a ${to.name}`];

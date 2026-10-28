@@ -100,6 +100,7 @@ describe("computeWarnings", () => {
   const trainer = {
     rank: "Advanced",
     attributes: { strength: 1, dexterity: 1, vitality: 1, insight: 1 },
+    social: { tough: 1, cool: 1, beauty: 1, cute: 1, clever: 1 },
     skills: { lore: 5 },
     currentHp: null,
     currentWill: null,
@@ -108,6 +109,7 @@ describe("computeWarnings", () => {
   it("allenatore Advanced appena creato: punti da spendere e skill sopra il limite", () => {
     expect(computeWarnings(trainer, "trainer")).toEqual([
       "Ti mancano da spendere 6 punti attributo",
+      "Ti mancano da spendere 6 punti sociali",
       "Ti mancano da spendere 12 punti skill",
       "Lore è a 5, ma ad Advanced il massimo è 4",
     ]);
@@ -118,6 +120,7 @@ describe("computeWarnings", () => {
       {
         rank: "Starter",
         attributes: { strength: 2, dexterity: 1, vitality: 1, insight: 1 },
+        social: { tough: 1, cool: 1, beauty: 1, cute: 1, clever: 1 },
         skills: { brawl: 1, alert: 1, nature: 1, stealth: 1, lore: 1, science: 1 },
         currentHp: 9,
         currentWill: 4,
@@ -137,6 +140,7 @@ describe("computeWarnings", () => {
       {
         rank: "Starter",
         attributes: { strength: 5, dexterity: 1, vitality: 1, special: 2, insight: 1 },
+        social: { tough: 1, cool: 1, beauty: 1, cute: 1, clever: 1 },
         skills: { brawl: 1, channel: 1, alert: 1, clash: 1, stealth: 1 },
         currentHp: null,
         currentWill: null,
@@ -158,6 +162,7 @@ describe("computeWarnings", () => {
         {
           rank: "Starter",
           attributes: { strength: 2, dexterity: 2, vitality: 1, special: 2, insight: 1 },
+          social: { tough: 1, cool: 1, beauty: 1, cute: 1, clever: 1 },
           skills: { brawl: 1, channel: 1, alert: 1, clash: 1, stealth: 1 },
           currentHp: 2,
           currentWill: null,
@@ -170,6 +175,68 @@ describe("computeWarnings", () => {
   });
 });
 
+describe("regole del manuale (p. 30–31)", () => {
+  const champion = {
+    rank: "Champion",
+    attributes: { strength: 7, dexterity: 8, vitality: 1, insight: 1 },
+    social: { tough: 7, cool: 1, beauty: 1, cute: 1, clever: 1 },
+    skills: {},
+    currentHp: null,
+    currentWill: null,
+  };
+
+  it("punti sociali da spendere e oltre il limite", () => {
+    const rookie = {
+      ...champion,
+      rank: "Rookie",
+      attributes: { strength: 1, dexterity: 1, vitality: 1, insight: 1 },
+    };
+    expect(
+      computeWarnings({ ...rookie, social: { ...rookie.social, tough: 1 } }, "trainer"),
+    ).toContain("Ti mancano da spendere 2 punti sociali");
+    expect(
+      computeWarnings({ ...rookie, social: { ...rookie.social, tough: 5 } }, "trainer"),
+    ).toContain("Hai 2 punti sociali oltre il limite del rank");
+  });
+
+  it("Champion: attributi fino a 2 oltre il limite", () => {
+    const w = computeWarnings(champion, "trainer");
+    expect(w).not.toContain("Strength è a 7, ma il massimo è 7");
+    expect(w).toContain("Dexterity è a 8, ma il massimo è 7");
+    expect(w.some((l) => l.startsWith("Tough"))).toBe(false);
+    expect(computeWarnings({ ...champion, rank: "Master" }, "trainer")).toContain(
+      "Strength è a 7, ma il massimo è 5",
+    );
+  });
+
+  it("Master e oltre: HP e Will +3", () => {
+    expect(maxHp("trainer", 2, 0, "Ace")).toBe(6);
+    expect(maxHp("trainer", 2, 0, "Master")).toBe(9);
+    expect(maxHp("pokemon", 2, 3, "Champion")).toBe(8);
+    expect(maxWill(3, "Master")).toBe(8);
+  });
+
+  it("il Pokémon non può superare il rank dell'allenatore", () => {
+    const sheet = {
+      rank: "Standard",
+      attributes: { strength: 2, dexterity: 2, vitality: 1, special: 2, insight: 1 },
+      social: { tough: 1, cool: 1, beauty: 1, cute: 1, clever: 1 },
+      skills: {},
+      currentHp: null,
+      currentWill: null,
+      moves: [],
+    };
+    expect(computeWarnings({ ...sheet, trainerRank: "Rookie" }, "pokemon", barboach)).toContain(
+      "Il rank del Pokémon (Standard) supera quello dell'allenatore (Rookie)",
+    );
+    expect(
+      computeWarnings({ ...sheet, trainerRank: "Standard" }, "pokemon", barboach).some((l) =>
+        l.startsWith("Il rank del Pokémon"),
+      ),
+    ).toBe(false);
+  });
+});
+
 describe("evoluzione (regola B)", () => {
   it("esempio della specifica: Strength 2 con base 1 → base 2 = 3", () => {
     const from = {
@@ -179,6 +246,7 @@ describe("evoluzione (regola B)", () => {
     const result = evolve(
       {
         attributes: { strength: 2, dexterity: 2, vitality: 1, special: 2, insight: 1 },
+        social: { tough: 1, cool: 1, beauty: 1, cute: 1, clever: 1 },
         ability: "Oblivious",
         currentHp: null,
         currentWill: null,
@@ -193,6 +261,7 @@ describe("evoluzione (regola B)", () => {
     const result = evolve(
       {
         attributes: { strength: 4, dexterity: 3, vitality: 2, special: 2, insight: 1 },
+        social: { tough: 1, cool: 1, beauty: 1, cute: 1, clever: 1 },
         ability: "Hydration",
         currentHp: 9,
         currentWill: 3,
@@ -223,6 +292,7 @@ describe("evoluzione (regola B)", () => {
     const result = evolve(
       {
         attributes: { strength: 2, dexterity: 2, vitality: 3, special: 2, insight: 1 },
+        social: { tough: 1, cool: 1, beauty: 1, cute: 1, clever: 1 },
         ability: "Oblivious",
         currentHp: 20,
         currentWill: null,

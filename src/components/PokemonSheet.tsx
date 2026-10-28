@@ -18,6 +18,8 @@ import {
   POKEMON_SKILL_GROUPS,
   RANKS,
   attributePointsSpent,
+  attributeLimitBonus,
+  masterBonus,
   maxHp,
   maxWill,
   moveLabel,
@@ -29,6 +31,7 @@ import {
   rulesFor,
   shownCurrent,
   skillPointsSpent,
+  socialPointsSpent,
   type PokemonAttribute,
 } from "@/lib/rules";
 import { formatNumber } from "@/lib/labels";
@@ -68,7 +71,8 @@ export interface PokemonSheetProps {
   species: SheetSpecies;
   abilityEffects: Record<string, string>;
   natures: { name: string; confidence: number }[];
-  trainers: { id: string; name: string }[];
+  /** Allenatori tra cui spostarlo; il rank serve per l'avviso "supera l'allenatore". */
+  trainers: { id: string; name: string; rank: string }[];
   /** Tutte le mosse (per "Aggiungi mossa") con effetto per quelle già note. */
   moves: MoveSummary[];
   readOnly: boolean;
@@ -109,8 +113,11 @@ export function PokemonSheet(props: PokemonSheetProps) {
   const locked = play.values.locked;
   const editable = !readOnly && !locked;
   const rules = rulesFor(d.rank);
-  const hpMax = maxHp("pokemon", d.attributes.vitality, species.baseHP);
-  const willMax = maxWill(d.attributes.insight);
+  const hpMax = maxHp("pokemon", d.attributes.vitality, species.baseHP, d.rank);
+  const willMax = maxWill(d.attributes.insight, d.rank);
+  const bonus = masterBonus(d.rank);
+  const limitBonus = attributeLimitBonus(d.rank);
+  const trainerRank = props.trainers.find((t) => t.id === trainerId)?.rank;
   const hp = shownCurrent(play.values.currentHp, hpMax);
   const will = shownCurrent(play.values.currentWill, willMax);
   const base = Object.fromEntries(POKEMON_ATTRIBUTES.map((a) => [a, species.attributes[a][0]]));
@@ -121,15 +128,17 @@ export function PokemonSheet(props: PokemonSheetProps) {
         {
           rank: d.rank,
           attributes: d.attributes,
+          social: d.social,
           skills: d.skills,
           currentHp: play.values.currentHp,
           currentWill: play.values.currentWill,
           moves: d.moves,
+          trainerRank,
         },
         "pokemon",
         species,
       ),
-    [d, play.values.currentHp, play.values.currentWill, species],
+    [d, play.values.currentHp, play.values.currentWill, species, trainerRank],
   );
 
   const set = <K extends keyof PokemonUpdate>(key: K, value: PokemonUpdate[K]) =>
@@ -420,19 +429,29 @@ export function PokemonSheet(props: PokemonSheetProps) {
                 <div className="grid grid-cols-3 gap-2">
                   <div className="mini-stat">
                     <span className="label-sm">Difesa</span>
-                    <span className="font-display text-2xl font-bold">{d.attributes.vitality}</span>
+                    <span className="font-display text-2xl font-bold">
+                      {d.attributes.vitality + bonus}
+                    </span>
                   </div>
                   <div className="mini-stat">
                     <span className="label-sm">Dif. Speciale</span>
-                    <span className="font-display text-2xl font-bold">{d.attributes.insight}</span>
+                    <span className="font-display text-2xl font-bold">
+                      {d.attributes.insight + bonus}
+                    </span>
                   </div>
                   <div className="mini-stat">
                     <span className="label-sm">Iniziativa</span>
                     <span className="font-display text-xl font-bold whitespace-nowrap">
-                      1d6 + {d.attributes.dexterity + (d.skills.alert ?? 0)}
+                      1d6 + {d.attributes.dexterity + (d.skills.alert ?? 0) + bonus}
                     </span>
                   </div>
                 </div>
+                {bonus > 0 && (
+                  <p className="m-0 text-[13px] text-muted">
+                    Bonus {d.rank}: +3 a HP, Will, Iniziativa e Difese (già inclusi); +2 dadi ai
+                    tiri che usano una skill.
+                  </p>
+                )}
               </PlayPanel>
             </div>
             <section className="panel order-7 lg:order-none" aria-label="Crescita">
@@ -507,7 +526,7 @@ export function PokemonSheet(props: PokemonSheetProps) {
                   key,
                   value: d.attributes[key],
                   base: species.attributes[key][0],
-                  max: species.attributes[key][1],
+                  max: species.attributes[key][1] + limitBonus,
                 }))}
                 slots={10}
                 left={rules.attributePoints - attributePointsSpent(d.attributes, base)}
@@ -521,6 +540,8 @@ export function PokemonSheet(props: PokemonSheetProps) {
             <div className="order-5 lg:order-none">
               <SocialCard
                 values={d.social}
+                left={rules.socialPoints - socialPointsSpent(d.social)}
+                max={5 + limitBonus}
                 disabled={!editable}
                 onChange={(key, v) =>
                   sheet.setDraft((s) => ({ ...s, social: { ...s.social, [key]: v } }))

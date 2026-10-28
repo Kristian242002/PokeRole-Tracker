@@ -202,16 +202,25 @@ const SOCIAL_COLOR: Record<SocialAttribute, string> = {
 
 export function SocialCard({
   values,
+  left,
+  max = 5,
   disabled,
   onChange,
 }: {
   values: Record<SocialAttribute, number>;
+  /** Punti sociali ancora da spendere per il rank. */
+  left: number;
+  /** 5, oppure 7 a Champion. */
+  max?: number;
   disabled: boolean;
   onChange: (key: SocialAttribute, value: number) => void;
 }) {
   return (
     <section className="panel gap-1" aria-label="Attributi sociali">
-      <h2 className="h2 mb-1">Attributi sociali</h2>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <h2 className="h2">Attributi sociali</h2>
+        <Budget left={left} />
+      </div>
       {SOCIAL_ATTRIBUTES.map((key) => {
         const label = ATTRIBUTE_LABEL[key];
         return (
@@ -227,13 +236,15 @@ export function SocialCard({
               label={label}
               value={values[key]}
               base={1}
-              max={5}
-              slots={5}
-              width={30}
+              max={max}
+              slots={max}
+              width={max > 5 ? 26 : 30}
               disabled={disabled}
               onChange={(v) => onChange(key, v)}
             />
-            <span className="cnt w-10 text-right">{values[key]} / 5</span>
+            <span className="cnt w-10 text-right" data-warn={values[key] > max}>
+              {values[key]} / {max}
+            </span>
           </div>
         );
       })}

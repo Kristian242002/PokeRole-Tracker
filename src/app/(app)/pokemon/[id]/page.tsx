@@ -88,7 +88,7 @@ export default async function PokemonPage({ params }: Params) {
 
   // Si sposta solo tra gli allenatori dello stesso gruppo: propri, oppure NPC della stessa campagna.
   const siblings = await db
-    .select({ id: trainers.id, name: trainers.name })
+    .select({ id: trainers.id, name: trainers.name, rank: trainers.rank })
     .from(trainers)
     .where(
       and(
@@ -106,7 +106,7 @@ export default async function PokemonPage({ params }: Params) {
       species={sheetSpecies}
       abilityEffects={abilityEffects}
       natures={NATURE_OPTIONS}
-      trainers={readOnly ? [{ id: trainer.id, name: trainer.name }] : siblings}
+      trainers={readOnly ? [{ id: trainer.id, name: trainer.name, rank: trainer.rank }] : siblings}
       moves={moves}
       readOnly={readOnly}
     />

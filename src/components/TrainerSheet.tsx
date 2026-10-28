@@ -9,11 +9,13 @@ import {
   TRAINER_ATTRIBUTES,
   TRAINER_SKILL_GROUPS,
   attributePointsSpent,
+  attributeLimitBonus,
   maxHp,
   maxWill,
   rulesFor,
   shownCurrent,
   skillPointsSpent,
+  socialPointsSpent,
 } from "@/lib/rules";
 import { computeWarnings } from "@/lib/warnings";
 import { AddPokemonPicker } from "./AddPokemonPicker";
@@ -90,8 +92,9 @@ export function TrainerSheet({
   const locked = play.values.locked;
   const editable = !readOnly && !locked;
   const rules = rulesFor(d.rank);
-  const hpMax = maxHp("trainer", d.attributes.vitality);
-  const willMax = maxWill(d.attributes.insight);
+  const hpMax = maxHp("trainer", d.attributes.vitality, 0, d.rank);
+  const willMax = maxWill(d.attributes.insight, d.rank);
+  const limit = 5 + attributeLimitBonus(d.rank);
   const hp = shownCurrent(play.values.currentHp, hpMax);
   const will = shownCurrent(play.values.currentWill, willMax);
 
@@ -101,6 +104,7 @@ export function TrainerSheet({
         {
           rank: d.rank,
           attributes: d.attributes,
+          social: d.social,
           skills: d.skills,
           currentHp: play.values.currentHp,
           currentWill: play.values.currentWill,
@@ -314,9 +318,9 @@ export function TrainerSheet({
                   key,
                   value: d.attributes[key],
                   base: 1,
-                  max: 5,
+                  max: limit,
                 }))}
-                slots={5}
+                slots={limit}
                 left={attrLeft}
                 disabled={!editable}
                 legend={false}
@@ -328,6 +332,8 @@ export function TrainerSheet({
             <div className="order-5 lg:order-none">
               <SocialCard
                 values={d.social}
+                left={rules.socialPoints - socialPointsSpent(d.social)}
+                max={limit}
                 disabled={!editable}
                 onChange={(key, v) =>
                   sheet.setDraft((s) => ({ ...s, social: { ...s.social, [key]: v } }))

@@ -30,7 +30,7 @@ export default async function TrainerPage({ params }: Params) {
   const species = await speciesSummaries(rows.map((p) => p.speciesId));
   const team: TeamMember[] = rows.map((p) => {
     const s = species.get(p.speciesId);
-    const hpMax = maxHp("pokemon", p.attributes.vitality, s?.baseHP ?? 0);
+    const hpMax = maxHp("pokemon", p.attributes.vitality, s?.baseHP ?? 0, p.rank);
     return {
       id: p.id,
       name: p.nickname || s?.name || p.speciesId,

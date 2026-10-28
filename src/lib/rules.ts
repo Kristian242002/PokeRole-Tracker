@@ -18,20 +18,78 @@ export interface RankRules {
   maxTargets: number;
   skillLimit: number;
   attributePoints: number;
+  /** Punti da distribuire sugli attributi sociali (manuale, p. 30–31). */
+  socialPoints: number;
   skillPoints: number;
   /** TP per salire al rank successivo; null per l'ultimo. */
   tpToNext: number | null;
 }
 
 export const RANK_RULES: Record<Rank, RankRules> = {
-  Starter: { maxTargets: 1, skillLimit: 1, attributePoints: 0, skillPoints: 5, tpToNext: 5 },
-  Rookie: { maxTargets: 2, skillLimit: 2, attributePoints: 2, skillPoints: 10, tpToNext: 15 },
-  Standard: { maxTargets: 3, skillLimit: 3, attributePoints: 4, skillPoints: 14, tpToNext: 25 },
-  Advanced: { maxTargets: 4, skillLimit: 4, attributePoints: 6, skillPoints: 17, tpToNext: 30 },
-  Expert: { maxTargets: 5, skillLimit: 5, attributePoints: 8, skillPoints: 19, tpToNext: 35 },
-  Ace: { maxTargets: 6, skillLimit: 5, attributePoints: 10, skillPoints: 20, tpToNext: 40 },
-  Master: { maxTargets: 8, skillLimit: 5, attributePoints: 10, skillPoints: 22, tpToNext: 50 },
-  Champion: { maxTargets: 10, skillLimit: 5, attributePoints: 14, skillPoints: 25, tpToNext: null },
+  Starter: {
+    maxTargets: 1,
+    skillLimit: 1,
+    attributePoints: 0,
+    socialPoints: 0,
+    skillPoints: 5,
+    tpToNext: 5,
+  },
+  Rookie: {
+    maxTargets: 2,
+    skillLimit: 2,
+    attributePoints: 2,
+    socialPoints: 2,
+    skillPoints: 10,
+    tpToNext: 15,
+  },
+  Standard: {
+    maxTargets: 3,
+    skillLimit: 3,
+    attributePoints: 4,
+    socialPoints: 4,
+    skillPoints: 14,
+    tpToNext: 25,
+  },
+  Advanced: {
+    maxTargets: 4,
+    skillLimit: 4,
+    attributePoints: 6,
+    socialPoints: 6,
+    skillPoints: 17,
+    tpToNext: 30,
+  },
+  Expert: {
+    maxTargets: 5,
+    skillLimit: 5,
+    attributePoints: 8,
+    socialPoints: 8,
+    skillPoints: 19,
+    tpToNext: 35,
+  },
+  Ace: {
+    maxTargets: 6,
+    skillLimit: 5,
+    attributePoints: 10,
+    socialPoints: 10,
+    skillPoints: 20,
+    tpToNext: 40,
+  },
+  Master: {
+    maxTargets: 8,
+    skillLimit: 5,
+    attributePoints: 10,
+    socialPoints: 10,
+    skillPoints: 22,
+    tpToNext: 50,
+  },
+  Champion: {
+    maxTargets: 10,
+    skillLimit: 5,
+    attributePoints: 14,
+    socialPoints: 14,
+    skillPoints: 25,
+    tpToNext: null,
+  },
 };
 
 /**
@@ -213,14 +271,27 @@ export function defaultSocial(): Record<SocialAttribute, number> {
   return { tough: 1, cool: 1, beauty: 1, cute: 1, clever: 1 };
 }
 
-/** HP massimi: allenatore Vitality + 4, Pokémon BaseHP + Vitality. */
-export function maxHp(kind: SheetKind, vitality: number, baseHP = 0): number {
-  return kind === "trainer" ? vitality + 4 : baseHP + vitality;
+/**
+ * Bonus del rank Master (e oltre): HP, Will, Iniziativa base e Difesa/Dif. Speciale +3
+ * (manuale, p. 31).
+ */
+export function masterBonus(rank: string | undefined): number {
+  return rank !== undefined && rankIndex(rank) >= rankIndex("Master") ? 3 : 0;
 }
 
-/** Will massimi: Insight + 2. */
-export function maxWill(insight: number): number {
-  return insight + 2;
+/** Champion: gli attributi possono superare il limite di 2 punti (manuale, p. 31). */
+export function attributeLimitBonus(rank: string | undefined): number {
+  return rank === "Champion" ? 2 : 0;
+}
+
+/** HP massimi: allenatore Vitality + 4, Pokémon BaseHP + Vitality (+3 da Master). */
+export function maxHp(kind: SheetKind, vitality: number, baseHP = 0, rank?: string): number {
+  return (kind === "trainer" ? vitality + 4 : baseHP + vitality) + masterBonus(rank);
+}
+
+/** Will massimi: Insight + 2 (+3 da Master). */
+export function maxWill(insight: number, rank?: string): number {
+  return insight + 2 + masterBonus(rank);
 }
 
 /** Limite mosse del Pokémon: Insight + 2 (solo avviso). */
@@ -267,6 +338,11 @@ export function attributePointsSpent(
     total += (value ?? 0) - b;
   }
   return total;
+}
+
+/** Punti sociali spesi = Σ (valore − 1). */
+export function socialPointsSpent(social: Partial<Record<SocialAttribute, number>>): number {
+  return Object.values(social).reduce((sum: number, v) => sum + ((v ?? 1) - 1), 0);
 }
 
 export function skillPointsSpent(skills: Record<string, number>): number {

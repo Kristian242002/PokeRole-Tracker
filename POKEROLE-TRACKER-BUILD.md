@@ -250,7 +250,16 @@ Tutte in `src/lib/rules.ts`, pure e testate.
 | Master   | _da verificare_ | 8            | 5            | 10                     | 22                 | 50                   |
 | Champion | _da verificare_ | 10           | 5            | 14                     | 25                 | —                    |
 
-Valgono per allenatori e Pokémon. Le icone sono SVG originali disegnate per il progetto (non asset ufficiali), mappate in una costante `RANK_ICON`; quelle "da verificare" usano un segnaposto finché non vengono confermate.
+Valgono per allenatori e Pokémon.
+
+Dal manuale (p. 30–31), in aggiunta alla tabella:
+
+- **Punti sociali (tot.)**: uguali ai punti attributo del rank (Starter 0, Rookie 2, Standard 4, Advanced 6, Expert 8, Ace 10, Master 10, Champion 14). Punti sociali spesi = Σ (valore − 1).
+- **Master e oltre**: HP, Will, Iniziativa base e Difesa/Dif. Speciale +3; +2 dadi a tutti i tiri che usano una skill (solo nota).
+- **Champion**: gli attributi (anche sociali) possono superare il limite di 2 punti.
+- Un Pokémon non può avere un rank più alto del suo allenatore (avviso).
+
+Le icone sono SVG originali disegnate per il progetto (non asset ufficiali), mappate in una costante `RANK_ICON`; quelle "da verificare" usano un segnaposto finché non vengono confermate.
 
 ### 6.2 Attributi
 
@@ -259,7 +268,7 @@ Valgono per allenatori e Pokémon. Le icone sono SVG originali disegnate per il 
 | Fisici  | Strength, Dexterity, Vitality, Insight (**niente Special**), da 1 a 5, base 1 | Strength, Dexterity, Vitality, Special, Insight; base e massimo **della specie** |
 | Sociali | Tough, Cool, Beauty, Cute, Clever, 1–5, base 1                                | Tough, Cool, Beauty, Cute, Clever, 1–5, base 1                                   |
 
-Punti attributo spesi = Σ (valore − base). I sociali non contano nei punti attributo del rank.
+Punti attributo spesi = Σ (valore − base). I sociali hanno un conteggio a parte (punti sociali, vedi §6.1).
 
 ### 6.3 Skill (0–5, limite = limite skill del rank)
 

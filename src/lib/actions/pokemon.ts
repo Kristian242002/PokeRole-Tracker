@@ -105,6 +105,7 @@ export async function rankUp(id: string): Promise<ActionResult<SheetChange>> {
     summary:
       `Rank ${p.rank} → ${next} (−${cost} TP, restano ${updated.tp}); ` +
       `punti attributo ${before.attributePoints} → ${after.attributePoints}, ` +
+      `punti sociali ${before.socialPoints} → ${after.socialPoints}, ` +
       `punti skill ${before.skillPoints} → ${after.skillPoints}, ` +
       `limite skill ${before.skillLimit} → ${after.skillLimit}`,
   });
