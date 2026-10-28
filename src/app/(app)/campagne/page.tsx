@@ -57,7 +57,6 @@ export default async function CampaignsPage() {
                   <Link
                     href={`/campagne/${c.id}`}
                     className="card flex h-full flex-col gap-2.5 p-4 text-ink no-underline hover:text-ink"
-                    aria-label={`Apri ${c.name}`}
                   >
                     <span className="font-display text-[21px] leading-tight font-semibold">
                       {c.name}

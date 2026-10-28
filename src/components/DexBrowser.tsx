@@ -92,7 +92,9 @@ export function DexBrowser({ entries }: { entries: DexEntry[] }) {
       </PageHeader>
       <main className="flex flex-col gap-4 p-4 lg:px-8 lg:pt-4 lg:pb-10">
         {shown.length === 0 ? (
-          <p className="py-12 text-center text-muted">Nessuna specie trovata.</p>
+          <p className="py-12 text-center text-muted">
+            Nessuna specie trovata: prova un altro nome o numero, oppure togli i filtri.
+          </p>
         ) : (
           <ul className="grid grid-cols-3 gap-2.5 lg:grid-cols-[repeat(auto-fill,minmax(170px,1fr))] lg:gap-4">
             {shown.map((e) => (
@@ -120,8 +122,7 @@ function DexCard({ entry }: { entry: DexEntry }) {
   return (
     <Link
       href={`/dex/${entry.id}`}
-      className="card flex h-full flex-col overflow-hidden rounded-[18px]"
-      aria-label={`${entry.name}, ${dexNumber(entry)}`}
+      className="card relative flex h-full flex-col overflow-hidden rounded-[18px]"
     >
       <div
         className="tint relative grid h-[84px] place-items-center border-b-2 border-edge lg:h-[120px]"
@@ -135,19 +136,20 @@ function DexCard({ entry }: { entry: DexEntry }) {
           fluid
           className="size-[72px] lg:size-[104px]"
         />
-        {entry.fanmade && <span className="fan-badge absolute top-1.5 left-1.5">Fanmade</span>}
       </div>
+      {/* Nel codice il nome viene prima del numero: è quello che legge per primo un lettore di schermo. */}
       <div className="flex flex-col gap-1 p-2 lg:px-3 lg:pt-2.5 lg:pb-3">
-        <span className="text-xs font-extrabold text-muted lg:text-[13px]">
+        <span className="truncate text-sm font-extrabold lg:text-[17px]">{entry.name}</span>
+        <span className="order-first text-xs font-extrabold text-muted lg:text-[13px]">
           {entry.fanmade && !entry.number ? "Fanmade" : `#${pad(entry.number)}`}
         </span>
-        <span className="truncate text-sm font-extrabold lg:text-[17px]">{entry.name}</span>
         <span className="flex flex-col items-start gap-[3px] lg:flex-row lg:flex-wrap lg:gap-1">
           {entry.types.map((t) => (
             <TypeBadge key={t} type={t} />
           ))}
         </span>
       </div>
+      {entry.fanmade && <span className="fan-badge absolute top-1.5 left-1.5">Fanmade</span>}
     </Link>
   );
 }

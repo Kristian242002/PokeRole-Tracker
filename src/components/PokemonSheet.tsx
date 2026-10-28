@@ -9,6 +9,7 @@ import {
   evolvePokemon,
   movePokemonToTrainer,
   rankUp,
+  setPokemonImage,
   setPokemonPlayState,
   updatePokemon,
 } from "@/lib/actions/pokemon";
@@ -37,6 +38,7 @@ import { formatNumber } from "@/lib/labels";
 import { computeWarnings } from "@/lib/warnings";
 import { AbilityInfo } from "./AbilityInfo";
 import { normalize } from "./Filters";
+import { ImageTile } from "./ImageTile";
 import { MoveRow, type MoveSummary } from "./MoveRow";
 import { RankIcon } from "./RankIcon";
 import { Sprite } from "./Sprite";
@@ -47,6 +49,7 @@ import { SaveBar } from "./sheet/SaveBar";
 import { AttributesCard, SheetTopBar, SkillsCard, SocialCard } from "./sheet/Sections";
 import { DotScale } from "./sheet/DotScale";
 import { WarningsBox } from "./sheet/WarningsBox";
+import { useLazyJson } from "./useLazyJson";
 
 export interface SheetSpecies {
   id: string;
@@ -72,10 +75,11 @@ export interface PokemonSheetProps {
   natures: { name: string; confidence: number }[];
   /** Allenatori tra cui spostarlo; il rank serve per l'avviso "supera l'allenatore". */
   trainers: { id: string; name: string; rank: string }[];
-  /** Tutte le mosse (per "Aggiungi mossa") con effetto per quelle già note. */
+  /** Mosse già note, con effetto e descrizione (le altre si scaricano per "Aggiungi mossa"). */
   moves: MoveSummary[];
   readOnly: boolean;
   back: { href: string; label: string; section: string };
+  userId: string;
 }
 
 function toDraft(p: Pokemon): PokemonUpdate {
@@ -107,6 +111,7 @@ export function PokemonSheet(props: PokemonSheetProps) {
   );
   const [busy, startBusy] = useTransition();
   const [trainerId, setTrainerId] = useState(p.trainerId);
+  const [image, setImage] = useState(p.image);
 
   const d = sheet.draft;
   const locked = play.values.locked;
@@ -254,17 +259,28 @@ export function PokemonSheet(props: PokemonSheetProps) {
             className="m-0 flex min-w-0 flex-col gap-3 border-0 p-0 lg:flex-row lg:flex-wrap lg:items-start lg:gap-5"
           >
             <div className="flex items-start gap-3.5 lg:flex-[1_1_300px]">
-              <div
-                className="tint grid size-[104px] flex-none place-items-center rounded-[20px] border-2 border-edge"
+              <ImageTile
+                kind="pokemon"
+                userId={props.userId}
+                label="Immagine"
+                hasCustom={!!image}
+                aspect={1}
+                editable={editable}
+                className="tint size-[104px] rounded-[20px] border-2 border-edge"
                 style={typeStyle(species.types[0])}
+                save={async (url) => {
+                  const r = await setPokemonImage(p.id, url);
+                  if (r.ok) setImage(url);
+                  return r.ok ? null : r.error;
+                }}
               >
                 <Sprite
-                  key={p.image ?? species.image}
-                  image={p.image ?? species.image}
+                  key={image ?? species.image}
+                  image={image ?? species.image}
                   name={species.name}
                   size={96}
                 />
-              </div>
+              </ImageTile>
               <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                 <label htmlFor="pk-nick" className="label">
                   Soprannome
@@ -558,7 +574,7 @@ export function PokemonSheet(props: PokemonSheetProps) {
               rank={d.rank}
               limit={moveLimit(d.attributes.insight)}
               learnset={species.moves}
-              catalog={props.moves}
+              knownDetails={props.moves}
               editable={editable}
               onChange={(moves) => set("moves", moves)}
             />
@@ -601,7 +617,7 @@ function MovesCard({
   rank,
   limit,
   learnset,
-  catalog,
+  knownDetails,
   editable,
   onChange,
 }: {
@@ -610,12 +626,18 @@ function MovesCard({
   rank: string;
   limit: number;
   learnset: { rank: string; name: string }[];
-  catalog: MoveSummary[];
+  knownDetails: MoveSummary[];
   editable: boolean;
   onChange: (moves: string[]) => void;
 }) {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
+  const all = useLazyJson<MoveSummary[]>("/api/mosse");
+  // Elenco completo (scaricato al primo focus) con i dettagli delle mosse già note.
+  const catalog = useMemo(() => {
+    const details = new Map(knownDetails.map((m) => [m.id, m]));
+    return all.data ? all.data.map((m) => details.get(m.id) ?? m) : knownDetails;
+  }, [all.data, knownDetails]);
   const byName = useMemo(() => new Map(catalog.map((m) => [m.name.toLowerCase(), m])), [catalog]);
   const learnRank = useMemo(() => {
     const map = new Map<string, string>();
@@ -653,7 +675,10 @@ function MovesCard({
   }
 
   const [error, setError] = useState<string | null>(null);
-  function submit() {
+  async function submit() {
+    if (!all.data && !(await all.load())) {
+      return setError("Elenco delle mosse non disponibile: controlla la connessione");
+    }
     const exact = byName.get(query.trim().toLowerCase());
     const pick = exact ?? suggestions[0];
     if (!pick) return setError(`Nessuna mossa chiamata "${query.trim()}"`);
@@ -669,7 +694,13 @@ function MovesCard({
           {known.length} / {limit}
         </span>
       </div>
-      {known.length === 0 && <p className="m-0 text-muted">Nessuna mossa.</p>}
+      {known.length === 0 && (
+        <p className="m-0 text-muted">
+          {editable
+            ? "Nessuna mossa: aggiungile qui sotto, quelle del learnset compaiono per prime."
+            : "Nessuna mossa."}
+        </p>
+      )}
       {known.map((name, i) => {
         const move = byName.get(name.toLowerCase());
         const label = moveLabel(name, rank, learnset);
@@ -722,7 +753,10 @@ function MovesCard({
               enterKeyHint="done"
               placeholder="Aggiungi mossa · cerca tra tutte"
               className="h-12 min-w-0 flex-1 border-0 bg-transparent text-base outline-none"
-              onFocus={() => setFocused(true)}
+              onFocus={() => {
+                setFocused(true);
+                void all.load();
+              }}
               onBlur={() => setTimeout(() => setFocused(false), 150)}
               onChange={(e) => {
                 setQuery(e.target.value);
@@ -731,7 +765,7 @@ function MovesCard({
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
-                  submit();
+                  void submit();
                 }
               }}
             />

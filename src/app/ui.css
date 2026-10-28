@@ -728,4 +728,24 @@
     color: #1b2440;
     box-shadow: inset 0 0 0 1.5px var(--edge);
   }
+
+  /* "Salta al contenuto": visibile solo quando riceve il focus da tastiera. */
+  .skip-link {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 50;
+    padding: 10px 16px;
+    border-radius: 12px;
+    border: 2px solid var(--edge);
+    background: var(--yellow);
+    color: #1b2440;
+    font-weight: 800;
+    text-decoration: none;
+    transform: translateY(-200%);
+  }
+  .skip-link:focus-visible {
+    transform: none;
+    color: #1b2440;
+  }
 }

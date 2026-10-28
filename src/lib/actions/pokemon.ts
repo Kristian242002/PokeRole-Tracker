@@ -7,7 +7,9 @@ import { currentUser } from "@/auth";
 import { db } from "@/db";
 import { pokemon } from "@/db/schema";
 import { ownedPokemon, ownedTrainer, type Pokemon } from "@/lib/access";
+import { deleteOwnBlob } from "@/lib/blob";
 import { findMove } from "@/lib/data";
+import { isOwnBlobUrl } from "@/lib/images";
 import { evolve } from "@/lib/evolution";
 import { newPokemonValues } from "@/lib/pokemon";
 import { RANK_RULES, isRank, nextRank } from "@/lib/rules";
@@ -166,6 +168,22 @@ export async function deletePokemon(id: string): Promise<ActionResult> {
   const access = await ownedPokemon(id, user.id);
   if (!access) return fail(NOT_FOUND);
   await db.delete(pokemon).where(eq(pokemon.id, id));
+  await deleteOwnBlob(access.pokemon.image, user.id);
   revalidatePokemon(access.pokemon);
   redirect(`/allenatori/${access.pokemon.trainerId}`);
+}
+
+/** Immagine personalizzata (§12): un'immagine caricata dall'utente, oppure null = sprite della specie. */
+export async function setPokemonImage(id: string, url: string | null): Promise<ActionResult> {
+  const user = await currentUser();
+  if (!user) return fail(NOT_FOUND);
+  const access = await ownedPokemon(id, user.id);
+  if (!access) return fail(NOT_FOUND);
+  if (access.pokemon.locked) return fail(LOCKED);
+  if (url !== null && !isOwnBlobUrl(url, user.id)) return fail("Immagine non valida");
+
+  await db.update(pokemon).set({ image: url }).where(eq(pokemon.id, id));
+  if (access.pokemon.image !== url) await deleteOwnBlob(access.pokemon.image, user.id);
+  revalidatePokemon(access.pokemon);
+  return ok(undefined);
 }

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/auth";
-import { BiomesBrowser, type BiomeView, type SpeciesInfo } from "@/components/BiomesBrowser";
+import { BiomesBrowser, type BiomeSummary } from "@/components/BiomesBrowser";
 import { DetailHeader } from "@/components/PageHeader";
 import { masterCampaign } from "@/lib/access";
-import { BIOMES, BIOME_CODES } from "@/lib/biomes";
+import { BIOMES, BIOME_CODES, RARITIES, type Rarity } from "@/lib/biomes";
 import { biomeCorrections, campaignTables } from "@/lib/campaign-biomes";
 
 type Params = { params: Promise<{ id: string }> };
@@ -18,28 +18,22 @@ export default async function BiomesPage({ params }: Params) {
   const campaign = await masterCampaign(id, user.id);
   if (!campaign) notFound();
 
-  const { species, tables } = await campaignTables(campaign.id, user.id, BIOME_CODES);
+  const { tables } = await campaignTables(campaign.id, user.id, BIOME_CODES);
   const corrections = await biomeCorrections(campaign.id);
-  const biomes: BiomeView[] = BIOMES.map((b) => ({
-    code: b.code,
-    name: b.name,
-    types: b.types,
-    corrections: corrections.filter((c) => c.biome === b.code).length,
-    entries: tables.get(b.code)!.map((e) => ({
-      speciesId: e.speciesId,
-      rarity: e.rarity,
-      legendary: e.legendary,
-      source: e.source,
-      overridden: e.overridden,
-    })),
-  }));
-  // Tutte le specie (per "Aggiungi specie"), in forma ridotta.
-  const info: Record<string, SpeciesInfo> = Object.fromEntries(
-    species.map((s) => [
-      s.id,
-      { name: s.name, image: s.image, type: s.types[0] ?? "Normal", fanmade: s.fanmade },
-    ]),
-  );
+  // Solo i riepiloghi: le specie di un bioma si caricano quando il master lo apre.
+  const biomes: BiomeSummary[] = BIOMES.map((b) => {
+    const entries = tables.get(b.code)!;
+    return {
+      code: b.code,
+      name: b.name,
+      types: b.types,
+      corrections: corrections.filter((c) => c.biome === b.code).length,
+      counts: Object.fromEntries(
+        RARITIES.map((r) => [r, entries.filter((e) => e.rarity === r).length]),
+      ) as Record<Rarity, number>,
+      total: entries.length,
+    };
+  });
 
   return (
     <>
@@ -60,7 +54,7 @@ export default async function BiomesPage({ params }: Params) {
             10%. Le modifiche valgono solo per questa campagna.
           </p>
         </div>
-        <BiomesBrowser campaignId={campaign.id} biomes={biomes} species={info} />
+        <BiomesBrowser campaignId={campaign.id} biomes={biomes} />
       </main>
     </>
   );

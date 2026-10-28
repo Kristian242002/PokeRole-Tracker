@@ -6,7 +6,6 @@ import { db } from "@/db";
 import { pokemon } from "@/db/schema";
 import { TrainerSheet, type TeamMember, type TrainerSheetData } from "@/components/TrainerSheet";
 import { trainerAccess } from "@/lib/access";
-import { dexEntries } from "@/lib/dex";
 import { maxHp, shownCurrent } from "@/lib/rules";
 import { sheetContext } from "@/lib/sheet-context";
 import { speciesSummaries } from "@/lib/species";
@@ -65,10 +64,10 @@ export default async function TrainerPage({ params }: Params) {
         locked: trainer.locked,
       }}
       team={team}
-      dex={readOnly ? [] : await dexEntries(user.id)}
       readOnly={readOnly}
       campaign={campaign}
       back={back}
+      userId={user.id}
     />
   );
 }

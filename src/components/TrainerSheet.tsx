@@ -1,8 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useTransition } from "react";
-import { deleteTrainer, setTrainerPlayState, updateTrainer } from "@/lib/actions/trainers";
+import { useMemo, useState, useTransition } from "react";
+import {
+  deleteTrainer,
+  setTrainerImage,
+  setTrainerPlayState,
+  updateTrainer,
+} from "@/lib/actions/trainers";
 import type { TrainerUpdate } from "@/lib/actions/schemas";
 import {
   RANKS,
@@ -19,7 +24,7 @@ import {
 } from "@/lib/rules";
 import { computeWarnings } from "@/lib/warnings";
 import { AddPokemonPicker } from "./AddPokemonPicker";
-import type { DexEntry } from "./DexBrowser";
+import { ImageTile } from "./ImageTile";
 import { RankIcon } from "./RankIcon";
 import { Sprite } from "./Sprite";
 import { TrainerPortrait } from "./TrainerPortrait";
@@ -61,18 +66,19 @@ export interface TeamMember {
 export function TrainerSheet({
   trainer,
   team,
-  dex,
   readOnly,
   campaign,
   back,
+  userId,
 }: {
   trainer: TrainerSheetData;
   team: TeamMember[];
-  dex: DexEntry[];
   readOnly: boolean;
   campaign: TrainerCampaign;
   back: SheetBack;
+  userId: string;
 }) {
+  const [image, setImage] = useState(trainer.image);
   const id = trainer.id;
   const sheet = useSheetDraft<TrainerUpdate>(
     {
@@ -165,11 +171,26 @@ export function TrainerSheet({
               className="m-0 flex min-w-0 flex-col gap-3 border-0 p-0 lg:flex-row lg:flex-wrap lg:items-end lg:gap-5"
             >
               <div className="flex items-start gap-3.5 lg:flex-[1_1_380px]">
-                <TrainerPortrait
-                  image={trainer.image}
-                  name={d.name}
-                  className="h-[120px] w-24 border-dashed"
-                />
+                <ImageTile
+                  kind="trainer"
+                  userId={userId}
+                  label="Ritratto"
+                  hasCustom={!!image}
+                  aspect={0.8}
+                  editable={editable}
+                  className="h-[120px] w-24 rounded-2xl border-2 border-edge bg-surface2"
+                  save={async (url) => {
+                    const r = await setTrainerImage(id, url);
+                    if (r.ok) setImage(url);
+                    return r.ok ? null : r.error;
+                  }}
+                >
+                  <TrainerPortrait
+                    image={image}
+                    name={d.name}
+                    className="size-full rounded-none! border-0!"
+                  />
+                </ImageTile>
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <label htmlFor="t-name" className="label">
                     Nome
@@ -266,7 +287,11 @@ export function TrainerSheet({
                 <span className="cnt">{team.length}</span>
               </div>
               {team.length === 0 && (
-                <p className="m-0 text-muted">Nessun Pokémon: aggiungine uno.</p>
+                <p className="m-0 text-muted">
+                  {readOnly
+                    ? "Nessun Pokémon."
+                    : "Nessun Pokémon: cercane uno qui sotto in “Aggiungi Pokémon”."}
+                </p>
               )}
               <ul className="grid grid-cols-2 gap-2.5">
                 {team.map((p) => (
@@ -314,7 +339,7 @@ export function TrainerSheet({
                   </li>
                 ))}
               </ul>
-              {!readOnly && <AddPokemonPicker trainerId={id} entries={dex} />}
+              {!readOnly && <AddPokemonPicker trainerId={id} />}
             </section>
           </div>
 

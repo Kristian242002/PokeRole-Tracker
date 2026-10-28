@@ -32,7 +32,7 @@ export function Sprite({
     return (
       <span
         aria-hidden="true"
-        className={`grid place-items-center font-display font-semibold opacity-55 ${className}`}
+        className={`grid place-items-center font-display font-semibold ${className}`}
         style={
           fluid
             ? { fontSize: Math.max(12, size * 0.3) }

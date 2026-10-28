@@ -44,8 +44,8 @@ export default defineConfig({
     env: {
       DATABASE_URL: testDatabaseUrl(),
       INVITE_CODE: TEST_INVITE_CODE,
-      // Niente caricamenti veri su Vercel Blob dai test.
-      BLOB_READ_WRITE_TOKEN: "",
+      // Niente caricamenti veri su Vercel Blob, salvo il test immagini (E2E_BLOB=1).
+      BLOB_READ_WRITE_TOKEN: process.env.E2E_BLOB ? (process.env.BLOB_READ_WRITE_TOKEN ?? "") : "",
       ...(process.env.CI ? {} : { NEXT_DIST_DIR: ".next-e2e" }),
     },
   },

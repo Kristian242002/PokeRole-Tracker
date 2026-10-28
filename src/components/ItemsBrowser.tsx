@@ -88,7 +88,9 @@ export function ItemsBrowser({ items }: { items: Item[] }) {
       </PageHeader>
       <main className="flex flex-col gap-2.5 p-4 lg:max-w-5xl lg:px-8 lg:pt-4 lg:pb-10">
         {filtered.length === 0 ? (
-          <p className="py-10 text-center text-muted">Nessuno strumento trovato.</p>
+          <p className="py-10 text-center text-muted">
+            Nessuno strumento trovato: prova un altro nome o un&apos;altra tasca.
+          </p>
         ) : (
           filtered.map((item) => <ItemRow key={item.id} item={item} />)
         )}

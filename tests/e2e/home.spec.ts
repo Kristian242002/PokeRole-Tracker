@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { registerUser, uniqueUsername } from "./helpers";
 
 test("la home reindirizza al login e la navigazione è visibile", async ({ page }, testInfo) => {
   await page.goto("/");
@@ -39,4 +40,17 @@ test("la home reindirizza al login e la navigazione è visibile", async ({ page 
 test("le sezioni personali richiedono il login", async ({ page }) => {
   await page.goto("/allenatori");
   await expect(page).toHaveURL(/\/login$/);
+});
+
+test("404 in italiano, anche per le schede non accessibili", async ({ page }, testInfo) => {
+  const res = await page.goto("/pagina-che-non-esiste");
+  expect(res?.status()).toBe(404);
+  await expect(page.getByRole("heading", { level: 1, name: "Pagina non trovata" })).toBeVisible();
+
+  await registerUser(page, uniqueUsername(testInfo, "n"));
+  const sheet = await page.goto("/pokemon/00000000-0000-4000-8000-000000000000");
+  expect(sheet?.status()).toBe(404);
+  await expect(page.getByRole("heading", { level: 1, name: "Pagina non trovata" })).toBeVisible();
+  await page.getByRole("link", { name: "Pokédex", exact: true }).last().click();
+  await expect(page).toHaveURL(/\/dex$/);
 });

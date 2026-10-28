@@ -7,7 +7,8 @@ import { trainers } from "@/db/schema";
 import type { MoveSummary } from "@/components/MoveRow";
 import { PokemonSheet, type SheetSpecies } from "@/components/PokemonSheet";
 import { pokemonAccess } from "@/lib/access";
-import { ABILITIES_BY_NAME, MOVES, NATURES, findMove } from "@/lib/data";
+import { ABILITIES_BY_NAME, NATURES, findMove } from "@/lib/data";
+import { moveSummary } from "@/lib/move-summaries";
 import { evolutionMethod } from "@/lib/labels";
 import { sheetContext } from "@/lib/sheet-context";
 import { getSpecies, speciesIdByName, visibleFanmade } from "@/lib/species";
@@ -73,19 +74,16 @@ export default async function PokemonPage({ params }: Params) {
     abilityNames.map((a) => [a, custom.get(a) ?? ABILITIES_BY_NAME.get(a)?.effect ?? ""]),
   );
 
-  // Tutte le mosse per "Aggiungi mossa"; effetto e descrizione solo per quelle già note.
-  const known = new Set(p.moves.map((m) => findMove(m)?.name).filter(Boolean));
-  const moves: MoveSummary[] = MOVES.map((m) => ({
-    id: m.id,
-    name: m.name,
-    type: m.type,
-    category: m.category,
-    power: m.power,
-    accuracy: m.accuracy,
-    damage: m.damage,
-    target: m.target,
-    ...(known.has(m.name) ? { effect: m.effect, description: m.description } : {}),
-  }));
+  // Solo le mosse già note, con effetto e descrizione; l'elenco completo per "Aggiungi mossa"
+  // lo scarica la scheda quando serve.
+  const moves: MoveSummary[] = [
+    ...new Map(
+      p.moves
+        .map((name) => findMove(name))
+        .filter((m) => !!m)
+        .map((m) => [m.id, { ...moveSummary(m), effect: m.effect, description: m.description }]),
+    ).values(),
+  ];
 
   // Si sposta solo tra gli allenatori dello stesso gruppo: propri, oppure NPC della stessa campagna.
   const siblings = await db
@@ -111,6 +109,7 @@ export default async function PokemonPage({ params }: Params) {
       moves={moves}
       readOnly={readOnly}
       back={(await sheetContext(trainer, mode, "pokemon")).back}
+      userId={user.id}
     />
   );
 }

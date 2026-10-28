@@ -95,17 +95,13 @@ export function BoxBrowser({
               <li key={e.id} className="min-w-0">
                 <Link
                   href={`/pokemon/${e.id}`}
-                  className="card flex h-full flex-col overflow-hidden"
-                  aria-label={`Apri la scheda di ${e.name}`}
+                  className="card relative flex h-full flex-col overflow-hidden"
                 >
                   <div
                     className="tint relative grid h-28 place-items-center border-b-2 border-edge"
                     style={typeStyle(e.types[0])}
                   >
                     <Sprite key={e.image} image={e.image} name={e.species} size={96} />
-                    {e.fanmade && (
-                      <span className="fan-badge absolute top-2.5 left-2">Fanmade</span>
-                    )}
                   </div>
                   <div className="flex flex-col gap-1.5 px-3 pt-2.5 pb-3">
                     <span className="truncate text-[17px] font-bold">{e.name}</span>
@@ -118,6 +114,7 @@ export function BoxBrowser({
                       ))}
                     </span>
                   </div>
+                  {e.fanmade && <span className="fan-badge absolute top-2.5 left-2">Fanmade</span>}
                 </Link>
               </li>
             ))}

@@ -78,7 +78,9 @@ export function MovesBrowser({ moves }: { moves: MoveSummary[] }) {
       </PageHeader>
       <main className="flex flex-col gap-2.5 p-4 lg:max-w-5xl lg:px-8 lg:pt-4 lg:pb-10">
         {shown.length === 0 ? (
-          <p className="py-10 text-center text-muted">Nessuna mossa trovata.</p>
+          <p className="py-10 text-center text-muted">
+            Nessuna mossa trovata: prova un altro nome o togli i filtri.
+          </p>
         ) : (
           shown.map((m) => <MoveRow key={m.id} move={m} showLearners />)
         )}

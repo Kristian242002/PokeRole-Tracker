@@ -21,6 +21,8 @@
   --blue: #2f6fd6;
   --blue-dark: #1f55ae;
   --accent-soft: #ffe1e5;
+  /* Rosso per testo su superficie (contrasto ≥ 4.5:1 in entrambi i temi). */
+  --accent-ink: #c21f30;
   --info-bg: #e1ecfc;
   --info-ink: #1f4e9e;
   --mut-bg: #eef1f6;
@@ -50,6 +52,7 @@
     --blue: #82a9f2;
     --blue-dark: #a9c4f7;
     --accent-soft: #4a2230;
+    --accent-ink: #ff8a97;
     --info-bg: #1e3358;
     --info-ink: #b9d0fa;
     --mut-bg: #263052;
@@ -161,6 +164,11 @@
   a:hover {
     color: var(--blue-dark);
   }
+  /* Link dentro il testo: riconoscibili anche senza colore (WCAG 1.4.1). */
+  :where(p, li, dd) > a:not([class]) {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
   button,
   input,
   select,
@@ -171,6 +179,11 @@
   :focus-visible {
     outline: 3px solid var(--blue);
     outline-offset: 2px;
+  }
+  /* Sulle zone rosse (barra laterale, testate su telefono) il blu si vede poco. */
+  .bg-red :focus-visible,
+  .side-link:focus-visible {
+    outline-color: #fff;
   }
   @media (prefers-reduced-motion: reduce) {
     *,
@@ -350,7 +363,7 @@
     border-radius: 14px;
   }
   .tab-link[aria-current="page"] {
-    color: var(--red);
+    color: var(--accent-ink);
   }
   .tab-link[aria-current="page"] .pill {
     background: var(--accent-soft);

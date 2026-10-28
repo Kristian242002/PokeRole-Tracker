@@ -7,6 +7,7 @@ import { currentUser } from "@/auth";
 import { db } from "@/db";
 import { campaigns, pokemon, trainers } from "@/db/schema";
 import { isUuid, masterCampaign } from "@/lib/access";
+import { deleteOwnBlob } from "@/lib/blob";
 import { generateJoinCode } from "@/lib/campaigns";
 import { newTrainerValues } from "@/lib/trainer";
 import { NOT_FOUND, fail, ok, type ActionResult } from "./result";
@@ -89,7 +90,16 @@ export async function regenerateCode(id: string): Promise<ActionResult<{ code: s
 export async function deleteCampaign(id: string): Promise<ActionResult> {
   const user = await currentUser();
   if (!user || !(await masterCampaign(id, user.id))) return fail(CAMPAIGN_NOT_FOUND);
+  // Le immagini degli NPC (e dei loro Pokémon) spariscono con la campagna.
+  const npcs = await db
+    .select({ trainer: trainers.image, pokemon: pokemon.image })
+    .from(trainers)
+    .leftJoin(pokemon, eq(pokemon.trainerId, trainers.id))
+    .where(eq(trainers.npcCampaignId, id));
   await db.delete(campaigns).where(eq(campaigns.id, id));
+  for (const url of new Set(npcs.flatMap((r) => [r.trainer, r.pokemon]))) {
+    await deleteOwnBlob(url, user.id);
+  }
   revalidatePath("/campagne");
   revalidatePath("/allenatori");
   redirect("/campagne");

@@ -40,6 +40,12 @@ Variabili (`.env.local`):
 | `npm run data:build -- <cartella v3.0>`          | rigenera `data/` dai JSON di Pokerole-Data                                      |
 | `node scripts/extract-design.mjs`                | estrae le pagine del design in `design/extracted/` (non committata)             |
 
+I test E2E includono un controllo di accessibilità automatico (axe, WCAG 2.1 AA, tema chiaro e scuro) e uno da tastiera. Non caricano mai immagini vere: il test `tests/e2e/immagini.spec.ts` usa il Vercel Blob reale (con `BLOB_READ_WRITE_TOKEN` in `.env.local`) e parte solo a mano:
+
+```bash
+E2E_BLOB=1 npx playwright test tests/e2e/immagini.spec.ts
+```
+
 ## Dati di gioco
 
 I file in `data/` sono generati da [Pokerole-Data](https://github.com/Pokerole-Software-Development/Pokerole-Data) e committati; l'app li importa lato server.

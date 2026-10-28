@@ -10,9 +10,10 @@ export interface Suggestion {
 }
 
 /**
- * Campo di testo con suggerimenti filtrati mentre si scrive.
- * Con `onPick` (aggiunta a un elenco): Invio sceglie il nome esatto o il primo suggerimento.
- * Senza `onPick` è un normale campo con completamento.
+ * Campo di testo con suggerimenti (combobox ARIA): frecce su/giù per scorrere,
+ * Invio per scegliere, Esc per chiudere.
+ * Con `onPick` (aggiunta a un elenco): Invio sceglie il suggerimento evidenziato,
+ * altrimenti il nome esatto o il primo. Senza `onPick` è un campo con completamento.
  */
 export function SuggestInput({
   id,
@@ -38,7 +39,8 @@ export function SuggestInput({
   label?: string;
   invalid?: boolean;
 }) {
-  const [focused, setFocused] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
   const suggestions = useMemo(() => {
     const q = normalize(value);
     if (!q) return [];
@@ -53,14 +55,25 @@ export function SuggestInput({
     }
     return [...starts, ...contains].slice(0, 8);
   }, [value, options, onPick]);
+  const shown = open && suggestions.length > 0;
+  const optionId = (i: number) => `${id}-opt-${i}`;
 
   function choose(v: string) {
+    setActive(-1);
     if (onPick) onPick(v);
-    else onChange(v);
+    else {
+      onChange(v);
+      setOpen(false);
+    }
   }
 
   return (
-    <div className="relative">
+    <div
+      className="relative"
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false);
+      }}
+    >
       <input
         id={id}
         className="sheet-field"
@@ -72,39 +85,60 @@ export function SuggestInput({
         enterKeyHint={onPick ? "done" : undefined}
         aria-label={label}
         aria-invalid={invalid || undefined}
+        role="combobox"
         aria-autocomplete="list"
         aria-controls={`${id}-list`}
-        aria-expanded={focused && suggestions.length > 0}
-        role="combobox"
-        onFocus={() => setFocused(true)}
-        onBlur={() => setTimeout(() => setFocused(false), 150)}
-        onChange={(e) => onChange(e.target.value)}
+        aria-expanded={shown}
+        aria-activedescendant={shown && active >= 0 ? optionId(active) : undefined}
+        onFocus={() => setOpen(true)}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+          setActive(-1);
+        }}
         onKeyDown={(e) => {
+          if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            if (!suggestions.length) return;
+            e.preventDefault();
+            setOpen(true);
+            const step = e.key === "ArrowDown" ? 1 : -1;
+            setActive((i) => (i + step + suggestions.length) % suggestions.length);
+            return;
+          }
+          if (e.key === "Escape") {
+            if (shown) e.preventDefault();
+            setOpen(false);
+            setActive(-1);
+            return;
+          }
           if (e.key !== "Enter") return;
           e.preventDefault();
+          if (shown && active >= 0) return choose(suggestions[active].value);
           const exact = options.find((o) => normalize(o.value) === normalize(value));
           const pick = exact ?? suggestions[0];
           if (onPick) onPick(pick ? pick.value : value);
-          else if (pick) onChange(pick.value);
+          else if (pick) choose(pick.value);
         }}
       />
-      {focused && suggestions.length > 0 && (
+      {shown && (
         <ul
           id={`${id}-list`}
           role="listbox"
-          className="absolute inset-x-0 top-full z-30 mt-1 max-h-72 overflow-auto rounded-[14px] border-2 border-edge bg-surface p-0 shadow-[0_4px_0_var(--edge)]"
+          aria-label="Suggerimenti"
+          className="absolute inset-x-0 top-full z-30 m-0 mt-1 max-h-72 list-none overflow-auto rounded-[14px] border-2 border-edge bg-surface p-0 shadow-[0_4px_0_var(--edge)]"
         >
-          {suggestions.map((s) => (
-            <li key={s.value} role="option" aria-selected="false">
-              <button
-                type="button"
-                className="flex min-h-11 w-full cursor-pointer items-center gap-2 border-0 border-b border-line bg-transparent px-3 py-1.5 text-left text-[15px] font-bold hover:bg-surface2"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={() => choose(s.value)}
-              >
-                <span className="flex-1">{s.value}</span>
-                {s.hint}
-              </button>
+          {suggestions.map((s, i) => (
+            <li
+              key={s.value}
+              id={optionId(i)}
+              role="option"
+              aria-selected={i === active}
+              className={`flex min-h-11 cursor-pointer items-center gap-2 border-b border-line px-3 py-1.5 text-[15px] font-bold last:border-0 hover:bg-surface2 ${i === active ? "bg-surface2 outline-2 -outline-offset-2 outline-blue" : ""}`}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => choose(s.value)}
+            >
+              <span className="flex-1">{s.value}</span>
+              {s.hint}
             </li>
           ))}
         </ul>

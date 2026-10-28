@@ -5,9 +5,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { currentUser } from "@/auth";
 import { db } from "@/db";
-import { campaigns, trainers, users } from "@/db/schema";
+import { campaigns, pokemon, trainers, users } from "@/db/schema";
 import { ownedTrainer } from "@/lib/access";
+import { deleteOwnBlob } from "@/lib/blob";
 import { normalizeJoinCode } from "@/lib/campaigns";
+import { isOwnBlobUrl } from "@/lib/images";
 import { newTrainerValues } from "@/lib/trainer";
 import { LOCKED, NOT_FOUND, fail, ok, type ActionResult } from "./result";
 import {
@@ -75,7 +77,14 @@ export async function deleteTrainer(id: string): Promise<ActionResult> {
   if (!user) return fail(NOT_FOUND);
   const trainer = await ownedTrainer(id, user.id);
   if (!trainer) return fail(NOT_FOUND);
+  const images = await db
+    .select({ image: pokemon.image })
+    .from(pokemon)
+    .where(eq(pokemon.trainerId, id));
   await db.delete(trainers).where(eq(trainers.id, id));
+  for (const url of [trainer.image, ...images.map((p) => p.image)]) {
+    await deleteOwnBlob(url, user.id);
+  }
   if (trainer.npcCampaignId) {
     revalidatePath(`/campagne/${trainer.npcCampaignId}`);
     redirect(`/campagne/${trainer.npcCampaignId}`);
@@ -120,6 +129,22 @@ export async function leaveCampaign(id: string): Promise<ActionResult> {
   if (!trainer || trainer.npcCampaignId) return fail(NOT_FOUND);
   await db.update(trainers).set({ campaignId: null }).where(eq(trainers.id, id));
   if (trainer.campaignId) revalidatePath(`/campagne/${trainer.campaignId}`);
+  revalidatePath(`/allenatori/${id}`);
+  revalidatePath("/allenatori");
+  return ok(undefined);
+}
+
+/** Ritratto (§12): un'immagine caricata dall'utente, oppure null per toglierlo. */
+export async function setTrainerImage(id: string, url: string | null): Promise<ActionResult> {
+  const user = await currentUser();
+  if (!user) return fail(NOT_FOUND);
+  const trainer = await ownedTrainer(id, user.id);
+  if (!trainer) return fail(NOT_FOUND);
+  if (trainer.locked) return fail(LOCKED);
+  if (url !== null && !isOwnBlobUrl(url, user.id)) return fail("Immagine non valida");
+
+  await db.update(trainers).set({ image: url }).where(eq(trainers.id, id));
+  if (trainer.image !== url) await deleteOwnBlob(trainer.image, user.id);
   revalidatePath(`/allenatori/${id}`);
   revalidatePath("/allenatori");
   return ok(undefined);

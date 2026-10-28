@@ -6,22 +6,20 @@ import type { DexEntry } from "./DexBrowser";
 import { normalize } from "./Filters";
 import { Sprite } from "./Sprite";
 import { TypeBadge } from "./TypeBadge";
+import { useLazyJson } from "./useLazyJson";
 
 /** "Aggiungi Pokémon": ricerca nel Pokédex, crea il Pokémon e apre la scheda. */
-export function AddPokemonPicker({
-  trainerId,
-  entries,
-}: {
-  trainerId: string;
-  entries: DexEntry[];
-}) {
+export function AddPokemonPicker({ trainerId }: { trainerId: string }) {
+  // Il Pokédex si scarica solo quando si comincia a cercare: la scheda resta leggera.
+  const dex = useLazyJson<DexEntry[]>("/api/specie");
+  const entries = dex.data;
   const [query, setQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const results = useMemo(() => {
     const q = normalize(query);
-    if (!q) return [];
+    if (!q || !entries) return [];
     const digits = q.replace(/^#/, "");
     return entries
       .filter((e) =>
@@ -61,7 +59,11 @@ export function AddPokemonPicker({
           id="add-pokemon"
           type="search"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => void dex.load()}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            void dex.load();
+          }}
           placeholder="Aggiungi Pokémon · cerca nel Pokédex"
           autoComplete="off"
           className="h-12 min-w-0 flex-1 border-0 bg-transparent text-base outline-none"
@@ -88,6 +90,14 @@ export function AddPokemonPicker({
           ))}
         </button>
       ))}
+      {query && !entries && !dex.error && (
+        <p className="m-0 border-t border-line px-3 py-2 text-muted">Carico il Pokédex…</p>
+      )}
+      {dex.error && (
+        <p className="form-error m-2" role="alert">
+          Pokédex non disponibile: controlla la connessione e riprova.
+        </p>
+      )}
       {pending && <p className="m-0 border-t border-line px-3 py-2 text-muted">Creazione…</p>}
       {error && (
         <p className="form-error m-2" role="alert">

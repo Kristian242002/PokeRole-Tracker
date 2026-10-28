@@ -1,6 +1,5 @@
 "use client";
 
-import { upload } from "@vercel/blob/client";
 import { IMAGE_INPUT_TYPES, IMAGE_MAX_BYTES, IMAGE_MAX_SIDE, type ImageKind } from "./images";
 
 /** Errore da mostrare all'utente così com'è. */
@@ -55,6 +54,8 @@ export async function encodeImage(canvas: HTMLCanvasElement): Promise<Blob> {
 export async function uploadImage(blob: Blob, kind: ImageKind, userId: string): Promise<string> {
   const ext = blob.type === "image/webp" ? "webp" : "jpg";
   try {
+    // La libreria di Blob è pesante: si scarica solo quando serve davvero.
+    const { upload } = await import("@vercel/blob/client");
     const result = await upload(`users/${userId}/${kind}/${crypto.randomUUID()}.${ext}`, blob, {
       access: "public",
       handleUploadUrl: "/api/upload",

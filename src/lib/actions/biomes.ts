@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { campaignBiomes } from "@/db/schema";
 import { masterCampaign } from "@/lib/access";
 import { BIOME_CODES, RARITIES, type BiomeCode, type Rarity } from "@/lib/biomes";
+import { campaignTables } from "@/lib/campaign-biomes";
 import { getSpecies } from "@/lib/species";
 import { fail, ok, type ActionResult } from "./result";
 
@@ -83,4 +84,52 @@ export async function resetBiome(campaignId: string, biome: BiomeCode): Promise<
     .where(and(eq(campaignBiomes.campaignId, campaignId), eq(campaignBiomes.biome, biome)));
   revalidatePath(`/campagne/${campaignId}/biomi`);
   return ok(undefined);
+}
+
+export interface BiomeSpeciesView {
+  speciesId: string;
+  name: string;
+  image: string;
+  type: string;
+  fanmade: boolean;
+  rarity: Rarity;
+  legendary: boolean;
+  source: "auto" | "added";
+  overridden: boolean;
+}
+
+/** Specie di un bioma, caricate quando il master lo apre (la pagina manda solo i riepiloghi). */
+export async function loadBiome(
+  campaignId: string,
+  biome: BiomeCode,
+): Promise<
+  ActionResult<{
+    entries: BiomeSpeciesView[];
+    addable: { id: string; name: string; fanmade: boolean }[];
+  }>
+> {
+  const user = await currentUser();
+  if (!user || !(await masterCampaign(campaignId, user.id))) return fail("Campagna non trovata");
+  if (!biomeSchema.safeParse(biome).success) return fail("Bioma non valido");
+  const { species, tables } = await campaignTables(campaignId, user.id, [biome]);
+  const byId = new Map(species.map((s) => [s.id, s]));
+  const entries = tables.get(biome)!.map((e) => {
+    const s = byId.get(e.speciesId)!;
+    return {
+      speciesId: e.speciesId,
+      name: s.name,
+      image: s.image,
+      type: s.types[0] ?? "Normal",
+      fanmade: s.fanmade,
+      rarity: e.rarity,
+      legendary: e.legendary,
+      source: e.source,
+      overridden: e.overridden,
+    };
+  });
+  const included = new Set(entries.map((e) => e.speciesId));
+  const addable = species
+    .filter((s) => !included.has(s.id))
+    .map((s) => ({ id: s.id, name: s.name, fanmade: s.fanmade }));
+  return ok({ entries, addable });
 }

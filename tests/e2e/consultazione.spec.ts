@@ -17,7 +17,7 @@ test("Pokédex: ricerca, filtri, scheda specie con abilità e mosse", async ({ p
     .getByRole("group", { name: "Filtra per tipo" })
     .getByRole("button", { name: "Fire" })
     .click();
-  await expect(page.getByText("Nessuna specie trovata.")).toBeVisible();
+  await expect(page.getByText(/^Nessuna specie trovata/)).toBeVisible();
   await page
     .getByRole("group", { name: "Filtra per tipo" })
     .getByRole("button", { name: "Ground" })
@@ -65,7 +65,7 @@ test("Mosse: ricerca, filtri e Chi la impara", async ({ page }) => {
     .getByRole("group", { name: "Filtra per categoria" })
     .getByRole("button", { name: "Fisica" })
     .click();
-  await expect(page.getByText("Nessuna mossa trovata.")).toBeVisible();
+  await expect(page.getByText(/^Nessuna mossa trovata/)).toBeVisible();
 });
 
 test("Strumenti: ricerca, tasca e dettagli", async ({ page }) => {

@@ -62,11 +62,7 @@ export default async function TrainersPage() {
               const members = team.filter((p) => p.trainerId === t.id);
               return (
                 <li key={t.id}>
-                  <Link
-                    href={`/allenatori/${t.id}`}
-                    className="card flex gap-4 p-4"
-                    aria-label={`Apri la scheda di ${t.name}`}
-                  >
+                  <Link href={`/allenatori/${t.id}`} className="card flex gap-4 p-4">
                     <TrainerPortrait image={t.image} name={t.name} className="h-[108px] w-[88px]" />
                     <div className="flex min-w-0 flex-1 flex-col gap-2">
                       <span className="truncate font-display text-2xl font-semibold">{t.name}</span>
