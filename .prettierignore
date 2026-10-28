@@ -1,0 +1,9 @@
+.next
+node_modules
+data
+drizzle
+design
+Pokerole-Data
+playwright-report
+test-results
+package-lock.json
