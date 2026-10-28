@@ -279,7 +279,8 @@ function main() {
     "move-learners.json": all.moveLearners,
   };
   for (const [name, value] of Object.entries(files)) {
-    writeFileSync(join(out, name), JSON.stringify(value));
+    // Indentati per essere leggibili e avere diff chiari quando si aggiornano i dati.
+    writeFileSync(join(out, name), JSON.stringify(value, null, 2) + "\n");
     const n = Array.isArray(value) ? value.length : Object.keys(value as object).length;
     console.log(`data/${name}: ${n}`);
   }
