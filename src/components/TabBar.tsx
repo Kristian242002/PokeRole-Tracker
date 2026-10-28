@@ -8,6 +8,8 @@ import { NAV_TABS, isActive } from "./nav";
 /** Barra di navigazione in basso, solo su telefono. */
 export function TabBar() {
   const pathname = usePathname();
+  // Nelle schede la barra in basso è quella di salvataggio (design).
+  if (/^\/(pokemon\/(?!miei$)[^/]+|allenatori\/[^/]+)$/.test(pathname)) return null;
   return (
     <nav
       aria-label="Navigazione principale"

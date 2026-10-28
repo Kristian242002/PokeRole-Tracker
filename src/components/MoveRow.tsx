@@ -32,12 +32,18 @@ export function MoveRow({
   move,
   rank,
   showLearners = false,
+  extra,
+  footer,
 }: {
   move: MoveSummary;
   /** Icona rank a sinistra, quando pertinente (es. learnset). */
   rank?: string;
   /** Carica e mostra "Chi la impara". */
   showLearners?: boolean;
+  /** Contenuto sotto il nome (es. etichetta learnset). */
+  extra?: React.ReactNode;
+  /** Contenuto in fondo ai dettagli (es. "Togli"). */
+  footer?: React.ReactNode;
 }) {
   const panelId = useId();
   const [open, setOpen] = useState(false);
@@ -84,6 +90,7 @@ export function MoveRow({
               {[acc, dmg].filter(Boolean).join(" · ")}
             </span>
           )}
+          {extra}
         </span>
         <TypeBadge type={move.type} />
         <span
@@ -159,6 +166,7 @@ export function MoveRow({
           ) : (
             <p className="m-0 text-muted">Caricamento…</p>
           )}
+          {footer}
         </div>
       )}
     </div>

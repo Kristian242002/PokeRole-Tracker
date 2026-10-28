@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { currentUser } from "@/auth";
+import { db } from "@/db";
+import { trainers } from "@/db/schema";
+import { AddToTrainer } from "@/components/AddToTrainer";
 import { AbilityInfo } from "@/components/AbilityInfo";
 import { AttributeDots } from "@/components/AttributeDots";
 import { MoveRow, type MoveSummary } from "@/components/MoveRow";
@@ -10,7 +14,7 @@ import { RankIcon, RankLabel } from "@/components/RankIcon";
 import { Sprite } from "@/components/Sprite";
 import { TypeBadges, typeStyle } from "@/components/TypeBadge";
 import { ABILITIES_BY_NAME, findMove } from "@/lib/data";
-import type { Evolution } from "@/lib/data-types";
+import { evolutionMethod, formatNumber, genderLabel } from "@/lib/labels";
 import { RANKS } from "@/lib/rules";
 import { getSpecies, speciesIdByName, visibleFanmade, type ResolvedSpecies } from "@/lib/species";
 
@@ -36,47 +40,6 @@ const ATTRIBUTE_NAMES = [
   ["insight", "Insight"],
 ] as const;
 
-const KIND_LABEL: Record<string, string> = {
-  Level: "Livello",
-  Stone: "Pietra",
-  Item: "Strumento",
-  Trade: "Scambio",
-  Special: "Speciale",
-  Mega: "Mega",
-  Form: "Forma",
-  Stat: "Attributo",
-};
-
-const SPEED_LABEL: Record<string, string> = {
-  Fast: "veloce",
-  Medium: "media",
-  Slow: "lenta",
-  Unknown: "sconosciuta",
-};
-
-function evolutionMethod(e: Evolution): string {
-  const parts = [KIND_LABEL[e.kind] ?? e.kind];
-  if (e.speed) parts.push(`velocità ${SPEED_LABEL[e.speed] ?? e.speed}`);
-  if (e.item) parts.push(e.item);
-  return parts.join(" · ");
-}
-
-function genderLabel(genderType: string): string {
-  switch (genderType) {
-    case "N":
-      return "Senza genere";
-    case "M":
-      return "Solo ♂";
-    case "F":
-      return "Solo ♀";
-    default:
-      return "♂ o ♀";
-  }
-}
-
-const formatNumber = (n: number, unit: string) =>
-  n ? `${n.toLocaleString("it-IT", { maximumFractionDigits: 1 })} ${unit}` : "—";
-
 export default async function SpeciesPage({ params }: Params) {
   const { speciesId } = await params;
   const { user, species } = await load(speciesId);
@@ -85,6 +48,13 @@ export default async function SpeciesPage({ params }: Params) {
   const number =
     species.fanmade && !species.number ? "Fanmade" : `#${String(species.number).padStart(4, "0")}`;
   const fanmade = species.fanmade ? await visibleFanmade(user?.id ?? null) : [];
+  const myTrainers = user
+    ? await db
+        .select({ id: trainers.id, name: trainers.name })
+        .from(trainers)
+        .where(and(eq(trainers.userId, user.id), isNull(trainers.npcCampaignId)))
+        .orderBy(asc(trainers.createdAt))
+    : null;
 
   return (
     <>
@@ -94,6 +64,11 @@ export default async function SpeciesPage({ params }: Params) {
         back={{ href: "/dex", label: "Torna al Pokédex", section: "Pokédex" }}
       />
       <main className="flex flex-col gap-4 p-4 pb-6 lg:flex-row lg:flex-wrap lg:items-start lg:gap-5 lg:px-8 lg:pt-4 lg:pb-10">
+        {myTrainers && (
+          <div className="lg:basis-full">
+            <AddToTrainer speciesId={species.id} speciesName={species.name} trainers={myTrainers} />
+          </div>
+        )}
         <div className="flex flex-col gap-4 lg:max-w-[440px] lg:flex-[1_1_340px] lg:gap-5">
           <SpeciesCard species={species} number={number} />
           <EvolutionsCard species={species} fanmade={fanmade} />

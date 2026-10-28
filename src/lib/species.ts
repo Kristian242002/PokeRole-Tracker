@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { db } from "@/db";
 import { fanmadeSpecies } from "@/db/schema";
 import { MOVE_LEARNERS, SPECIES, SPECIES_BY_ID, type Species } from "./data";
@@ -131,4 +131,53 @@ export async function moveLearners(moveName: string, userId: string | null): Pro
     if (m) fanmade.push({ speciesId: s.id, name: s.name, rank: m.rank, fanmade: true });
   }
   return [...fanmade, ...official];
+}
+
+export interface SpeciesSummary {
+  id: string;
+  name: string;
+  types: string[];
+  image: string;
+  baseHP: number;
+  fanmade: boolean;
+}
+
+/**
+ * Riassunto delle specie dei Pokémon mostrati in elenchi e riquadri.
+ * Nessun controllo di visibilità: sono Pokémon già posseduti (§14.11).
+ */
+export async function speciesSummaries(ids: string[]): Promise<Map<string, SpeciesSummary>> {
+  const out = new Map<string, SpeciesSummary>();
+  const fanmadeIds: string[] = [];
+  for (const id of new Set(ids)) {
+    if (isFanmadeId(id)) {
+      const uuid = id.slice(FANMADE_PREFIX.length);
+      if (UUID.test(uuid)) fanmadeIds.push(uuid);
+      continue;
+    }
+    const s = SPECIES_BY_ID.get(id);
+    if (s) out.set(id, summary(fromOfficial(s)));
+  }
+  if (fanmadeIds.length) {
+    const rows = await db
+      .select()
+      .from(fanmadeSpecies)
+      .where(inArray(fanmadeSpecies.id, fanmadeIds));
+    for (const row of rows) {
+      const s = fromFanmade(row);
+      out.set(s.id, summary(s));
+    }
+  }
+  return out;
+}
+
+function summary(s: ResolvedSpecies): SpeciesSummary {
+  return {
+    id: s.id,
+    name: s.name,
+    types: s.types,
+    image: s.image,
+    baseHP: s.baseHP,
+    fanmade: s.fanmade,
+  };
 }
