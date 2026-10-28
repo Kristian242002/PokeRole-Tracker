@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { currentUser } from "@/auth";
+import { AccountLink } from "@/components/AccountLink";
 import { Icon } from "@/components/Icon";
 import type { IconName } from "@/components/nav";
 import { PageHeader } from "@/components/PageHeader";
@@ -46,17 +48,14 @@ const GROUPS: { label: string; entries: MenuEntry[] }[] = [
       },
     ],
   },
-  {
-    label: "Account",
-    entries: [{ href: "/login", label: "Accedi", icon: "logout", tint: "#eef1f6" }],
-  },
 ];
 
 /** Menu "Altro" del telefono: le voci che non stanno nella barra in basso. */
-export default function AltroPage() {
+export default async function AltroPage() {
+  const user = await currentUser();
   return (
     <>
-      <PageHeader title="Altro" />
+      <PageHeader title="Altro" subtitle={user ? `@${user.username}` : undefined} />
       <main className="flex flex-col gap-2.5 p-4 lg:max-w-xl lg:px-8">
         {GROUPS.map((group) => (
           <section key={group.label} className="flex flex-col gap-2.5" aria-label={group.label}>
@@ -76,6 +75,16 @@ export default function AltroPage() {
             </nav>
           </section>
         ))}
+        <section className="flex flex-col gap-2.5" aria-label="Account">
+          <span className="group-label">Account</span>
+          <div className="menu-list">
+            <AccountLink username={user?.username ?? null} className="menu-item">
+              <span className="menu-icon" style={{ background: "#eef1f6" }}>
+                <Icon name="logout" />
+              </span>
+            </AccountLink>
+          </div>
+        </section>
       </main>
     </>
   );

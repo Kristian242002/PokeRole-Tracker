@@ -2,6 +2,7 @@
 !.env.example
 node_modules
 .next
+.next-e2e
 Pokerole-Data/
 next-env.d.ts
 *.tsbuildinfo

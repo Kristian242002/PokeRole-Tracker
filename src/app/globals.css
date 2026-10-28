@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./ui.css";
 
 /*
  * Token grafici tradotti da design/ (Claude Design).
@@ -103,7 +104,7 @@
 }
 
 /* Colori dei tipi (badge e tinte), dal design. */
-@theme {
+@theme static {
   --color-type-normal: #6e6e5e;
   --color-type-fire: #c2410c;
   --color-type-water: #1d5fd1;

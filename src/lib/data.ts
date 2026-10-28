@@ -20,3 +20,10 @@ export const MOVE_LEARNERS = moveLearnersJson as unknown as MoveLearners;
 export const SPECIES_BY_ID = new Map(SPECIES.map((s) => [s.id, s]));
 export const MOVES_BY_NAME = new Map(MOVES.map((m) => [m.name, m]));
 export const ABILITIES_BY_NAME = new Map(ABILITIES.map((a) => [a.name, a]));
+
+const MOVES_BY_KEY = new Map(MOVES.map((m) => [m.name.toLowerCase(), m]));
+
+/** Mossa per nome, tollerando differenze di maiuscole nei learnset (es. "FIre Blast"). */
+export function findMove(name: string): Move | undefined {
+  return MOVES_BY_NAME.get(name) ?? MOVES_BY_KEY.get(name.toLowerCase());
+}

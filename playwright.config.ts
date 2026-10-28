@@ -1,19 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
-import { config } from "dotenv";
-
-config({ path: ".env.local", quiet: true });
-
-// I test usano SOLO il database di test (Neon branch "test" in locale, postgres:16 in CI):
-// può essere svuotato. Mai il database di sviluppo.
-const testDatabaseUrl = process.env.CI ? process.env.DATABASE_URL : process.env.TEST_DATABASE_URL;
-if (!testDatabaseUrl) {
-  throw new Error("TEST_DATABASE_URL mancante in .env.local (database dei test E2E)");
-}
+import { TEST_INVITE_CODE, testDatabaseUrl } from "./tests/e2e/env";
 
 const PORT = 3100;
 
 export default defineConfig({
   testDir: "tests/e2e",
+  globalSetup: "./tests/e2e/global-setup.ts",
   fullyParallel: false,
   workers: 1,
   forbidOnly: !!process.env.CI,
@@ -40,10 +32,19 @@ export default defineConfig({
   ],
   webServer: {
     // Porta dedicata: non si riusa mai un server di sviluppo collegato al database dev.
-    command: process.env.CI ? `npm run start -- -p ${PORT}` : `npm run dev -- -p ${PORT}`,
+    // In CI la build è già fatta; in locale si fa una build separata (.next-e2e) che non
+    // disturba un eventuale `next dev` aperto.
+    command: process.env.CI
+      ? `npm run start -- -p ${PORT}`
+      : `npm run build && npm run start -- -p ${PORT}`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: false,
-    timeout: 180_000,
-    env: { DATABASE_URL: testDatabaseUrl },
+    timeout: 300_000,
+    // I test usano SOLO il database di test, che viene svuotato (vedi tests/e2e/env.ts).
+    env: {
+      DATABASE_URL: testDatabaseUrl(),
+      INVITE_CODE: TEST_INVITE_CODE,
+      ...(process.env.CI ? {} : { NEXT_DIST_DIR: ".next-e2e" }),
+    },
   },
 });
