@@ -47,6 +47,7 @@ export default async function SpeciesPage({ params }: Params) {
 
   const number =
     species.fanmade && !species.number ? "Fanmade" : `#${String(species.number).padStart(4, "0")}`;
+  const isOwner = species.fanmade && !!user && species.ownerId === user.id;
   const fanmade = species.fanmade ? await visibleFanmade(user?.id ?? null) : [];
   const myTrainers = user
     ? await db
@@ -56,14 +57,22 @@ export default async function SpeciesPage({ params }: Params) {
         .orderBy(asc(trainers.createdAt))
     : null;
 
+  const edit = isOwner && (
+    <Link href={`/fanmade/${species.id}`} className="btn btn-ghost h-11 w-full lg:w-auto">
+      Modifica fanmade
+    </Link>
+  );
+
   return (
     <>
       <DetailHeader
         eyebrow="Scheda specie"
         title={`${number} · ${species.name}`}
         back={{ href: "/dex", label: "Torna al Pokédex", section: "Pokédex" }}
+        actions={edit && <span className="hidden lg:inline-flex">{edit}</span>}
       />
       <main className="flex flex-col gap-4 p-4 pb-6 lg:flex-row lg:flex-wrap lg:items-start lg:gap-5 lg:px-8 lg:pt-4 lg:pb-10">
+        {edit && <div className="lg:hidden">{edit}</div>}
         {myTrainers && (
           <div className="lg:basis-full">
             <AddToTrainer speciesId={species.id} speciesName={species.name} trainers={myTrainers} />

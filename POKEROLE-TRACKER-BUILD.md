@@ -675,7 +675,7 @@ Elenco biomi; per ognuno le specie (sprite, nome, rarità effettiva). Il master 
 ## 12. Immagini
 
 - Dove: ritratto allenatore, immagine personalizzata Pokémon, immagine fanmade.
-- Nel browser: ridimensiona a lato lungo **512 px**, converti in **WebP** qualità ~0.8 con `canvas` (`createImageBitmap` + `OffscreenCanvas`/`<canvas>`), rifiuta se dopo la compressione supera 300 KB. Formati accettati in ingresso: jpg, png, webp, gif (primo frame).
+- Nel browser: ridimensiona a lato lungo **512 px**, converti in **WebP** qualità ~0.8 con `canvas` (`createImageBitmap` + `OffscreenCanvas`/`<canvas>`), rifiuta se dopo la compressione supera 300 KB. Formati accettati in ingresso: jpg, png, webp, gif (primo frame). Se il browser non sa produrre WebP (vecchi Safari) ripiega su JPEG (`.jpg`).
 - Upload su **Vercel Blob** con `@vercel/blob` (`handleUpload` lato server con controllo di sessione e proprietà, `upload()` lato client). Percorso: `users/<userId>/<tipo>/<uuid>.webp`. Salva l'URL pubblico nel record.
 - Alla sostituzione o eliminazione del record, elimina il vecchio blob.
 - Fanmade: in alternativa al file, link https.

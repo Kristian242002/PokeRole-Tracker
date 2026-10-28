@@ -1,7 +1,7 @@
 // Etichette italiane per evoluzioni e genere, condivise da scheda specie e scheda Pokémon.
 import type { Evolution } from "./data-types";
 
-const KIND_LABEL: Record<string, string> = {
+export const KIND_LABEL: Record<string, string> = {
   Level: "Livello",
   Stone: "Pietra",
   Item: "Strumento",
@@ -12,7 +12,7 @@ const KIND_LABEL: Record<string, string> = {
   Stat: "Attributo",
 };
 
-const SPEED_LABEL: Record<string, string> = {
+export const SPEED_LABEL: Record<string, string> = {
   Fast: "veloce",
   Medium: "media",
   Slow: "lenta",

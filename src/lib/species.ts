@@ -3,6 +3,7 @@ import { and, eq, inArray, or } from "drizzle-orm";
 import { db } from "@/db";
 import { fanmadeSpecies } from "@/db/schema";
 import { MOVE_LEARNERS, SPECIES, SPECIES_BY_ID, type Species } from "./data";
+import type { FanmadeData } from "./fanmade";
 
 export const FANMADE_PREFIX = "fm-";
 
@@ -15,11 +16,6 @@ export interface ResolvedSpecies extends Species {
   customAbilities: { name: string; effect: string }[];
 }
 
-/** Forma di `fanmade_species.data`. */
-export type FanmadeData = Partial<Omit<Species, "id" | "name">> & {
-  customAbilities?: { name: string; effect: string }[];
-};
-
 type FanmadeRow = typeof fanmadeSpecies.$inferSelect;
 
 export function isFanmadeId(id: string): boolean {
@@ -27,7 +23,7 @@ export function isFanmadeId(id: string): boolean {
 }
 
 function fromFanmade(row: FanmadeRow): ResolvedSpecies {
-  const d = row.data as FanmadeData;
+  const d = row.data as Partial<FanmadeData>;
   const zero: [number, number] = [1, 1];
   return {
     id: FANMADE_PREFIX + row.id,

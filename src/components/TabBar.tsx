@@ -9,7 +9,7 @@ import { NAV_TABS, isActive } from "./nav";
 export function TabBar() {
   const pathname = usePathname();
   // Nelle schede la barra in basso è quella di salvataggio (design).
-  if (/^\/(pokemon\/(?!miei$)[^/]+|allenatori\/[^/]+)$/.test(pathname)) return null;
+  if (/^\/(pokemon\/(?!miei$)[^/]+|allenatori\/[^/]+|fanmade\/[^/]+)$/.test(pathname)) return null;
   return (
     <nav
       aria-label="Navigazione principale"
