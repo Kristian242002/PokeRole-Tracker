@@ -8,6 +8,13 @@
       "when": 1793191798279,
       "tag": "0000_chubby_ender_wiggin",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793202055221,
+      "tag": "0001_remove_pokemon_tp",
+      "breakpoints": true
     }
   ]
 }

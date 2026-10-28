@@ -10,7 +10,7 @@ import { ownedPokemon, ownedTrainer, type Pokemon } from "@/lib/access";
 import { findMove } from "@/lib/data";
 import { evolve } from "@/lib/evolution";
 import { newPokemonValues } from "@/lib/pokemon";
-import { RANK_RULES, isRank, nextRank, rankUpCost } from "@/lib/rules";
+import { RANK_RULES, isRank, nextRank } from "@/lib/rules";
 import { getSpecies } from "@/lib/species";
 import { LOCKED, NOT_FOUND, fail, ok, type ActionResult } from "./result";
 import {
@@ -79,7 +79,7 @@ export interface SheetChange {
   summary: string;
 }
 
-/** Sali di rank: scala i TP (verificati qui) e passa al rank successivo (§6.6). */
+/** Sali di rank: passa al rank successivo (§6.6). */
 export async function rankUp(id: string): Promise<ActionResult<SheetChange>> {
   const user = await currentUser();
   if (!user) return fail(NOT_FOUND);
@@ -87,14 +87,12 @@ export async function rankUp(id: string): Promise<ActionResult<SheetChange>> {
   if (!access) return fail(NOT_FOUND);
   const p = access.pokemon;
   if (p.locked) return fail(LOCKED);
-  const cost = rankUpCost(p.rank);
   const next = nextRank(p.rank);
-  if (cost === null || !next) return fail("È già al rank massimo");
-  if (p.tp < cost) return fail(`Servono ${cost} TP per salire di rank (ne ha ${p.tp})`);
+  if (!next) return fail("È già al rank massimo");
 
   const [updated] = await db
     .update(pokemon)
-    .set({ rank: next, tp: p.tp - cost })
+    .set({ rank: next })
     .where(eq(pokemon.id, id))
     .returning();
   revalidatePokemon(updated);
@@ -103,7 +101,7 @@ export async function rankUp(id: string): Promise<ActionResult<SheetChange>> {
   return ok({
     pokemon: updated,
     summary:
-      `Rank ${p.rank} → ${next} (−${cost} TP, restano ${updated.tp}); ` +
+      `Rank ${p.rank} → ${next}; ` +
       `punti attributo ${before.attributePoints} → ${after.attributePoints}, ` +
       `punti sociali ${before.socialPoints} → ${after.socialPoints}, ` +
       `punti skill ${before.skillPoints} → ${after.skillPoints}, ` +

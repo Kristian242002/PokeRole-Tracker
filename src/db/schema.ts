@@ -109,7 +109,6 @@ export const pokemon = pgTable(
     social: jsonb("social").$type<SocialAttributes>().notNull(),
     skills: jsonb("skills").$type<Skills>().notNull(),
     moves: jsonb("moves").$type<string[]>().notNull().default([]),
-    tp: integer("tp").notNull().default(0),
     currentHp: integer("current_hp"),
     currentWill: integer("current_will"),
     statuses: jsonb("statuses").$type<string[]>().notNull().default([]),

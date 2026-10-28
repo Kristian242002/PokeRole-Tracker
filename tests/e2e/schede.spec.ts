@@ -27,14 +27,10 @@ test("schede: allenatore, Pokémon, rank up, HP, evoluzione, mosse e accessi", a
   const pokemonUrl = page.url();
   await expect(page.getByRole("link", { name: "Barboach" })).toBeVisible();
 
-  // TP 27 a Standard → Sali di rank → Advanced con 2 TP
+  // Standard → Sali di rank → Advanced
   await page.getByLabel("Rank").selectOption("Standard");
-  const plusTp = page.getByRole("button", { name: "Aggiungi 1 TP" });
-  for (let i = 0; i < 27; i++) await plusTp.click();
-  await expect(page.getByTestId("tp-value")).toHaveText("27");
-  await page.getByRole("button", { name: "Sali di rank (−25 TP)" }).click();
+  await page.getByRole("button", { name: "Sali di rank → Advanced" }).click();
   await expect(page.getByLabel("Rank")).toHaveValue("Advanced");
-  await expect(page.getByTestId("tp-value")).toHaveText("2");
   await expect(page.getByRole("status", { name: "Avvisi" })).toContainText(
     "Rank Standard → Advanced",
   );

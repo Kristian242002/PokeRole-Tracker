@@ -8,7 +8,6 @@ import {
   moveLabelText,
   nextRank,
   painPenalty,
-  rankUpCost,
   shownCurrent,
 } from "@/lib/rules";
 import { computeWarnings, type SpeciesForWarnings } from "@/lib/warnings";
@@ -50,7 +49,7 @@ describe("formule", () => {
   it("HP e Will massimi", () => {
     expect(maxHp("trainer", 2)).toBe(6);
     expect(maxHp("pokemon", 2, 3)).toBe(5);
-    expect(maxWill(3)).toBe(5);
+    expect(maxWill(3)).toBe(6);
   });
 
   it("valore attuale: null = pieno, limitato al massimo", () => {
@@ -69,10 +68,8 @@ describe("formule", () => {
     expect(painPenalty(0, 6)).toBe("KO");
   });
 
-  it("rank up: costo e rank successivo", () => {
-    expect(rankUpCost("Standard")).toBe(25);
+  it("rank up: rank successivo", () => {
     expect(nextRank("Standard")).toBe("Advanced");
-    expect(rankUpCost("Champion")).toBeNull();
     expect(nextRank("Champion")).toBeNull();
   });
 
@@ -123,7 +120,7 @@ describe("computeWarnings", () => {
         social: { tough: 1, cool: 1, beauty: 1, cute: 1, clever: 1 },
         skills: { brawl: 1, alert: 1, nature: 1, stealth: 1, lore: 1, science: 1 },
         currentHp: 9,
-        currentWill: 4,
+        currentWill: 5,
       },
       "trainer",
     );
@@ -131,7 +128,7 @@ describe("computeWarnings", () => {
       "Hai 1 punto attributo oltre il limite del rank",
       "Hai 1 punto skill oltre il limite del rank",
       "HP attuali (9) sopra il massimo (5)",
-      "Will attuale (4) sopra il massimo (3)",
+      "Will attuale (5) sopra il massimo (4)",
     ]);
   });
 
@@ -144,14 +141,14 @@ describe("computeWarnings", () => {
         skills: { brawl: 1, channel: 1, alert: 1, clash: 1, stealth: 1 },
         currentHp: null,
         currentWill: null,
-        moves: ["Mud Slap", "Water Gun", "Earthquake", "Tackle"],
+        moves: ["Mud Slap", "Water Gun", "Earthquake", "Tackle", "Splash"],
       },
       "pokemon",
       barboach,
     );
     expect(w).toContain("Strength è a 5, ma il massimo della specie è 4");
     expect(w).toContain("Dexterity è a 1, sotto la base della specie (2)");
-    expect(w).toContain("Conosce 4 mosse, il limite è 3 (Insight + 2)");
+    expect(w).toContain("Conosce 5 mosse, il limite è 4 (Insight + 3)");
     expect(w).toContain("Water Gun si impara a Rookie, sopra il rank attuale (Starter)");
     expect(w).toContain("Tackle è fuori dal learnset");
   });
@@ -213,7 +210,7 @@ describe("regole del manuale (p. 30–31)", () => {
     expect(maxHp("trainer", 2, 0, "Ace")).toBe(6);
     expect(maxHp("trainer", 2, 0, "Master")).toBe(9);
     expect(maxHp("pokemon", 2, 3, "Champion")).toBe(8);
-    expect(maxWill(3, "Master")).toBe(8);
+    expect(maxWill(3, "Master")).toBe(9);
   });
 
   it("il Pokémon non può superare il rank dell'allenatore", () => {

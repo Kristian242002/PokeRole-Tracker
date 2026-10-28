@@ -117,7 +117,7 @@ export function computeWarnings(
   if (kind === "pokemon" && sheet.moves) {
     const limit = moveLimit(values.insight);
     if (sheet.moves.length > limit) {
-      lines.push(`Conosce ${sheet.moves.length} mosse, il limite è ${limit} (Insight + 2)`);
+      lines.push(`Conosce ${sheet.moves.length} mosse, il limite è ${limit} (Insight + 3)`);
     }
     if (species) {
       for (const move of sheet.moves) {

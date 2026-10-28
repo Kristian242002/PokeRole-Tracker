@@ -47,7 +47,7 @@ Funzioni:
 | Ruolo     | Cosa usa                                                              |
 | --------- | --------------------------------------------------------------------- |
 | Giocatore | Pokémon, Mosse, Strumenti, I miei allenatori, I miei Pokémon, Fanmade |
-| Master    | Tutto quello del giocatore + Campagne, Generatore, Biomi              |
+| Master    |
 
 Non esiste un ruolo fisso: chi crea una campagna ne è il master. Un utente può avere sia allenatori propri sia campagne.
 
@@ -239,16 +239,16 @@ Tutte in `src/lib/rules.ts`, pure e testate.
 
 ### 6.1 Rank
 
-| Rank     | Icona Ball      | Bersagli max | Limite skill | Punti attributo (tot.) | Punti skill (tot.) | TP per il successivo |
-| -------- | --------------- | ------------ | ------------ | ---------------------- | ------------------ | -------------------- |
-| Starter  | _da verificare_ | 1            | 1            | 0                      | 5                  | 5                    |
-| Rookie   | Poké Ball       | 2            | 2            | 2                      | 10                 | 15                   |
-| Standard | Great Ball      | 3            | 3            | 4                      | 14                 | 25                   |
-| Advanced | Ultra Ball      | 4            | 4            | 6                      | 17                 | 30                   |
-| Expert   | _da verificare_ | 5            | 5            | 8                      | 19                 | 35                   |
-| Ace      | _da verificare_ | 6            | 5            | 10                     | 20                 | 40                   |
-| Master   | _da verificare_ | 8            | 5            | 10                     | 22                 | 50                   |
-| Champion | _da verificare_ | 10           | 5            | 14                     | 25                 | —                    |
+| Rank     | Icona Ball      | Bersagli max | Limite skill | Punti attributo (tot.) | Punti skill (tot.) |
+| -------- | --------------- | ------------ | ------------ | ---------------------- | ------------------ |
+| Starter  | _da verificare_ | 1            | 1            | 0                      | 5                  |
+| Rookie   | Poké Ball       | 2            | 2            | 2                      | 10                 |
+| Standard | Great Ball      | 3            | 3            | 4                      | 14                 |
+| Advanced | Ultra Ball      | 4            | 4            | 6                      | 17                 |
+| Expert   | _da verificare_ | 5            | 5            | 8                      | 19                 |
+| Ace      | _da verificare_ | 6            | 5            | 10                     | 20                 |
+| Master   | _da verificare_ | 8            | 5            | 10                     | 22                 |
+| Champion | _da verificare_ | 10           | 5            | 14                     | 25                 |
 
 Valgono per allenatori e Pokémon.
 
@@ -290,10 +290,10 @@ Punti attributo spesi = Σ (valore − base). I sociali hanno un conteggio a par
 | Valore                   | Allenatore              | Pokémon                   |
 | ------------------------ | ----------------------- | ------------------------- |
 | HP massimi               | Vitality + 4            | BaseHP specie + Vitality  |
-| Will massimi             | Insight + 2             | Insight + 2               |
+| Will massimi             | Insight + 3             | Insight + 3               |
 | Difesa / Difesa Speciale | —                       | Vitality / Insight        |
 | Iniziativa               | 1d6 + Dexterity + Alert | 1d6 + Dexterity + Alert   |
-| Limite mosse             | —                       | Insight + 2 (solo avviso) |
+| Limite mosse             | —                       | Insight + 3 (solo avviso) |
 
 HP e Will **attuali** sono salvati; se superano il massimo (es. dopo aver abbassato Vitality) si mostrano limitati al massimo e compare un avviso.
 
@@ -320,8 +320,8 @@ Salvati come array di stringhe; si attivano/disattivano anche a scheda bloccata.
 
 ### 6.6 Salire di rank
 
-- Pulsante **"Sali di rank (−N TP)"**, attivo se TP ≥ costo: scala i TP e passa al rank successivo.
-- Il rank resta modificabile **a mano** dalla tendina (senza toccare i TP).
+- Pulsante **"Sali di rank → X"** (solo Pokémon): passa al rank successivo. Niente TP.
+- Il rank resta modificabile **a mano** dalla tendina.
 - Dopo il cambio, il riquadro avvisi mostra cosa è cambiato e cosa resta da spendere.
 
 ### 6.7 Evoluzione (regola B, decisa)
@@ -330,7 +330,7 @@ Funzione pura `evolve(pokemon, fromSpecies, toSpecies)` in `lib/evolution.ts`:
 
 - per ogni attributo: `nuovo = min(toMax, toBase + max(0, vecchio − fromBase))`;
 - abilità: mantenuta se esiste nella nuova specie, altrimenti la prima della nuova;
-- mosse, rank, TP, soprannome, sociali, skill, HP/Will attuali restano (HP/Will limitati ai nuovi massimi);
+- mosse, rank, soprannome, sociali, skill, HP/Will attuali restano (HP/Will limitati ai nuovi massimi);
 - ritorna anche il **riepilogo** delle differenze per il riquadro: "Strength 2 → 3, Vitality 2 → 3; nuovi massimi: Strength 5, Vitality 6".
 - Esempio di test: Barboach Strength 2 (base 1) → Whiscash (base 2) = 3.
 
@@ -343,7 +343,7 @@ Il pulsante **"Evolvi in X"** compare solo se la specie ha evoluzioni con `to`; 
   - `✓ learnset (Rank)` se è nel learnset a rank ≤ rank attuale;
   - `⚠ sopra il rank` se è nel learnset ma a rank > attuale;
   - `⚠ fuori learnset` se non è nel learnset.
-- Limite Insight + 2: solo avviso.
+- Limite Insight + 3: solo avviso.
 
 ### 6.9 Riquadro avvisi
 
@@ -353,7 +353,7 @@ Funzione pura `computeWarnings(sheet, kind, species?)` in `lib/warnings.ts`, tes
 - punti skill: idem;
 - skill sopra il limite: "Lore è a 5, ma ad Advanced il massimo è 4";
 - attributo Pokémon sopra il massimo della specie o sotto la base;
-- mosse oltre il limite: "Conosce 7 mosse, il limite è 6 (Insight + 2)";
+- mosse oltre il limite: "Conosce 8 mosse, il limite è 7 (Insight + 3)";
 - mosse fuori learnset / sopra il rank (una riga per mossa);
 - HP o Will attuali sopra il massimo;
 - dopo rank up o evoluzione: riepilogo dei cambiamenti (temporaneo, fino al salvataggio successivo).
@@ -417,7 +417,6 @@ pokemon
   social jsonb
   skills jsonb
   moves jsonb string[]
-  tp integer default 0
   current_hp integer null
   current_will integer null
   statuses jsonb string[]
@@ -557,8 +556,8 @@ Navigazione principale: Pokédex · Mosse · Strumenti · Allenatori · I miei P
 
 ### 10.6 Scheda allenatore `/allenatori/[id]`
 
-In gioco: HP (Vitality + 4) e Will (Insight + 2) attuali/massimi con −/+ grandi; stati; penalità da dolore.
-Scheda: ritratto (caricabile), nome, età, rank (tendina con icone; per l'allenatore il rank si cambia solo a mano, senza TP), soldi, attributi, sociali, skill (§6.3), zaino (testo libero), **codice campagna** (campo + "Collega"/"Scollega"; mostra il nome della campagna collegata), note, elenco dei suoi Pokémon (riquadri con HP), "Aggiungi Pokémon" (ricerca nel Pokédex), riquadro avvisi, lucchetto, elimina (con conferma).
+In gioco: HP (Vitality + 4) e Will (Insight + 3) attuali/massimi con −/+ grandi; stati; penalità da dolore.
+Scheda: ritratto (caricabile), nome, età, rank (tendina con icone; per l'allenatore il rank si cambia solo a mano), soldi, attributi, sociali, skill (§6.3), zaino (testo libero), **codice campagna** (campo + "Collega"/"Scollega"; mostra il nome della campagna collegata), note, elenco dei suoi Pokémon (riquadri con HP), "Aggiungi Pokémon" (ricerca nel Pokédex), riquadro avvisi, lucchetto, elimina (con conferma).
 In sola lettura (master): stessa pagina senza controlli di modifica.
 
 ### 10.7 I miei Pokémon `/pokemon/miei`
@@ -569,12 +568,12 @@ In sola lettura (master): stessa pagina senza controlli di modifica.
 
 ### 10.8 Scheda Pokémon `/pokemon/[id]`
 
-In gioco: HP (BaseHP + Vitality) e Will (Insight + 2) attuali/massimi con −/+; stati; penalità; Difesa/Dif. Speciale; Iniziativa.
+In gioco: HP (BaseHP + Vitality) e Will (Insight + 3) attuali/massimi con −/+; stati; penalità; Difesa/Dif. Speciale; Iniziativa.
 Scheda:
 
 - immagine (sprite o caricata), soprannome, genere (♂/♀/—, secondo `genderType`), specie (link), tipi, altezza/peso;
 - allenatore (tendina tra i propri allenatori: sposta il Pokémon);
-- rank (tendina con icone, modificabile a mano) + TP con −/+ e "Sali di rank (−N TP)";
+- rank (tendina con icone, modificabile a mano) + "Sali di rank → X" ed "Evolvi in X";
 - natura (tendina con fiducia), abilità (tendina tra quelle della specie + nascosta, con ⓘ), strumento tenuto (testo libero);
 - attributi (base bloccata, investiti, max specie, scala 10), sociali colorati, skill (§6.3);
 - **"Evolvi in X"** (§6.7);
@@ -655,8 +654,8 @@ Per ogni Pokémon:
 2. rank nell'intervallo;
 3. **attributi** = base specie; distribuisci a caso i punti attributo del rank (§6.1), un punto alla volta su attributi sotto il proprio massimo; se tutti al massimo, i punti avanzati si perdono;
 4. **skill** = 0; distribuisci a caso i punti skill del rank sulle 12 skill del Pokémon, nessuna oltre il limite skill del rank;
-5. **mosse**: dal learnset con rank ≤ rank del Pokémon, estrai senza ripetizione fino a Insight + 2 (Insight appena generato);
-6. **abilità** a caso tra le normali (nascosta secondo opzione); **natura** a caso tra le 25; **genere** secondo `genderType`; sociali = 1; HP/Will pieni; TP 0.
+5. **mosse**: dal learnset con rank ≤ rank del Pokémon, estrai senza ripetizione fino a Insight + 3 (Insight appena generato);
+6. **abilità** a caso tra le normali (nascosta secondo opzione); **natura** a caso tra le 25; **genere** secondo `genderType`; sociali = 1; HP/Will pieni.
 
 ### 11.5 Risultato
 
@@ -689,7 +688,7 @@ Organizzate in `src/lib/actions/<dominio>.ts` con `"use server"`. Ogni azione: l
 
 - **account**: `register`, `login`, `logout`
 - **trainers**: `createTrainer`, `updateTrainer`, `deleteTrainer`, `setTrainerPlayState` (hp, will, statuses — salvataggio immediato), `joinCampaign(code)`, `leaveCampaign`
-- **pokemon**: `createPokemon(trainerId, speciesId)`, `updatePokemon`, `deletePokemon`, `setPokemonPlayState`, `rankUp` (verifica TP lato server), `evolvePokemon(toSpeciesId)` (usa `lib/evolution.ts`), `movePokemonToTrainer(trainerId)` (tra i propri)
+- **pokemon**: `createPokemon(trainerId, speciesId)`, `updatePokemon`, `deletePokemon`, `setPokemonPlayState`, `rankUp` (rank successivo), `evolvePokemon(toSpeciesId)` (usa `lib/evolution.ts`), `movePokemonToTrainer(trainerId)` (tra i propri)
 - **fanmade**: `createFanmade`, `updateFanmade`, `deleteFanmade`
 - **campaigns**: `createCampaign`, `updateCampaign`, `deleteCampaign`, `regenerateCode`, `removePlayer(trainerId)`, `createNpcTrainer`, `sendPokemonTo(pokemonId, playerTrainerId)`
 - **generator**: `saveGenerated(campaignId, trainerId, generated)` (valida che il Pokémon sia coerente: specie esistente, rank valido), `sendGenerated(campaignId, playerTrainerId, generated)`
@@ -740,7 +739,7 @@ Ogni fase si chiude con: `typecheck`, `lint`, `test`, `test:e2e` (scenari della 
 
 - `lib/rules.ts`, `lib/warnings.ts`, `lib/evolution.ts` con test unitari.
 - I miei allenatori, scheda allenatore, I miei Pokémon, scheda Pokémon (§10.5–10.8), lucchetto, parte in gioco con salvataggio immediato, riquadro avvisi, sali di rank, evolvi (regola B), mosse con etichette.
-- ✅ Scenario E2E: crea allenatore Advanced → avvisi sui punti; aggiungi Barboach → TP 27 a Standard → Sali di rank → Advanced con 2 TP; danno −1 → ricarica → HP persistiti; evolvi in Whiscash → attributi secondo regola B; mossa fuori learnset → etichetta ⚠; altro utente → 404.
+- ✅ Scenario E2E: crea allenatore Advanced → avvisi sui punti; aggiungi Barboach → Standard → Sali di rank → Advanced; danno −1 → ricarica → HP persistiti; evolvi in Whiscash → attributi secondo regola B; mossa fuori learnset → etichetta ⚠; altro utente → 404.
 
 **Fase 3 — Fanmade**
 
@@ -754,7 +753,7 @@ Ogni fase si chiude con: `typecheck`, `lint`, `test`, `test:e2e` (scenari della 
 
 **Fase 5 — Generatore e Biomi**
 
-- `lib/biomes.ts`, `lib/generator.ts` con test (RNG fisso): punti spesi = punti del rank (salvo massimi), skill ≤ limite, mosse ≤ Insight + 2 e tutte del learnset a rank ≤.
+- `lib/biomes.ts`, `lib/generator.ts` con test (RNG fisso): punti spesi = punti del rank (salvo massimi), skill ≤ limite, mosse ≤ Insight + 3 e tutte del learnset a rank ≤.
 - ✅ Genera 3 Pokémon "Bosco, Rookie–Standard" → schede coerenti → Salva su NPC → Invia a un giocatore; correzioni dei biomi applicate.
 
 **Fase 6 — Immagini**

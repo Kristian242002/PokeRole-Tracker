@@ -67,7 +67,6 @@ export const pokemonUpdateSchema = z.object({
   social: record(SOCIAL_ATTRIBUTES),
   skills: skills(POKEMON_SKILLS),
   moves: z.array(z.string().max(80)).max(40, "Troppe mosse"),
-  tp: z.number().int("TP non validi").min(0, "I TP non possono essere negativi").max(99999),
   happiness: z.number().int().min(0).max(5),
   loyalty: z.number().int().min(0).max(5),
   notes: text(10000, "Note"),

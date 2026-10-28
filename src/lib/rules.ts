@@ -21,8 +21,6 @@ export interface RankRules {
   /** Punti da distribuire sugli attributi sociali (manuale, p. 30–31). */
   socialPoints: number;
   skillPoints: number;
-  /** TP per salire al rank successivo; null per l'ultimo. */
-  tpToNext: number | null;
 }
 
 export const RANK_RULES: Record<Rank, RankRules> = {
@@ -32,7 +30,6 @@ export const RANK_RULES: Record<Rank, RankRules> = {
     attributePoints: 0,
     socialPoints: 0,
     skillPoints: 5,
-    tpToNext: 5,
   },
   Rookie: {
     maxTargets: 2,
@@ -40,7 +37,6 @@ export const RANK_RULES: Record<Rank, RankRules> = {
     attributePoints: 2,
     socialPoints: 2,
     skillPoints: 10,
-    tpToNext: 15,
   },
   Standard: {
     maxTargets: 3,
@@ -48,7 +44,6 @@ export const RANK_RULES: Record<Rank, RankRules> = {
     attributePoints: 4,
     socialPoints: 4,
     skillPoints: 14,
-    tpToNext: 25,
   },
   Advanced: {
     maxTargets: 4,
@@ -56,7 +51,6 @@ export const RANK_RULES: Record<Rank, RankRules> = {
     attributePoints: 6,
     socialPoints: 6,
     skillPoints: 17,
-    tpToNext: 30,
   },
   Expert: {
     maxTargets: 5,
@@ -64,7 +58,6 @@ export const RANK_RULES: Record<Rank, RankRules> = {
     attributePoints: 8,
     socialPoints: 8,
     skillPoints: 19,
-    tpToNext: 35,
   },
   Ace: {
     maxTargets: 6,
@@ -72,7 +65,6 @@ export const RANK_RULES: Record<Rank, RankRules> = {
     attributePoints: 10,
     socialPoints: 10,
     skillPoints: 20,
-    tpToNext: 40,
   },
   Master: {
     maxTargets: 8,
@@ -80,7 +72,6 @@ export const RANK_RULES: Record<Rank, RankRules> = {
     attributePoints: 10,
     socialPoints: 10,
     skillPoints: 22,
-    tpToNext: 50,
   },
   Champion: {
     maxTargets: 10,
@@ -88,7 +79,6 @@ export const RANK_RULES: Record<Rank, RankRules> = {
     attributePoints: 14,
     socialPoints: 14,
     skillPoints: 25,
-    tpToNext: null,
   },
 };
 
@@ -289,14 +279,14 @@ export function maxHp(kind: SheetKind, vitality: number, baseHP = 0, rank?: stri
   return (kind === "trainer" ? vitality + 4 : baseHP + vitality) + masterBonus(rank);
 }
 
-/** Will massimi: Insight + 2 (+3 da Master). */
+/** Will massimi: Insight + 3 (+3 da Master). */
 export function maxWill(insight: number, rank?: string): number {
-  return insight + 2 + masterBonus(rank);
+  return insight + 3 + masterBonus(rank);
 }
 
-/** Limite mosse del Pokémon: Insight + 2 (solo avviso). */
+/** Limite mosse del Pokémon: Insight + 3 (solo avviso). */
 export function moveLimit(insight: number): number {
-  return insight + 2;
+  return insight + 3;
 }
 
 /** Valore attuale mostrato: `null` = pieno; sopra il massimo viene limitato. */
@@ -316,11 +306,6 @@ export function painPenalty(hp: number, max: number): 0 | 1 | 2 | "KO" {
 export function nextRank(rank: string): Rank | null {
   const i = rankIndex(rank);
   return i >= 0 && i < RANKS.length - 1 ? RANKS[i + 1] : null;
-}
-
-/** TP per salire dal rank indicato; null se non si può salire. */
-export function rankUpCost(rank: string): number | null {
-  return isRank(rank) ? RANK_RULES[rank].tpToNext : null;
 }
 
 export function rulesFor(rank: string): RankRules {

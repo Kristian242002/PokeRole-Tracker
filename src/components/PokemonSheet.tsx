@@ -27,7 +27,6 @@ import {
   moveLimit,
   nextRank,
   rankIndex,
-  rankUpCost,
   rulesFor,
   shownCurrent,
   skillPointsSpent,
@@ -45,7 +44,7 @@ import { TypeBadge, TypeBadges, typeStyle } from "./TypeBadge";
 import { usePlayState, useSheetDraft } from "./sheet/hooks";
 import { PlayPanel } from "./sheet/PlayPanel";
 import { SaveBar } from "./sheet/SaveBar";
-import { AttributesCard, SheetTopBar, SkillsCard, SocialCard, Stepper } from "./sheet/Sections";
+import { AttributesCard, SheetTopBar, SkillsCard, SocialCard } from "./sheet/Sections";
 import { DotScale } from "./sheet/DotScale";
 import { WarningsBox } from "./sheet/WarningsBox";
 
@@ -90,7 +89,6 @@ function toDraft(p: Pokemon): PokemonUpdate {
     social: p.social,
     skills: p.skills,
     moves: p.moves,
-    tp: p.tp,
     happiness: p.happiness,
     loyalty: p.loyalty,
     notes: p.notes,
@@ -149,7 +147,6 @@ export function PokemonSheet(props: PokemonSheetProps) {
     return sheet.status === "saved" || (await sheet.saveNow());
   }
 
-  const cost = rankUpCost(d.rank);
   const next = nextRank(d.rank);
   function doRankUp() {
     startBusy(async () => {
@@ -454,32 +451,20 @@ export function PokemonSheet(props: PokemonSheetProps) {
                 )}
               </PlayPanel>
             </div>
-            <section className="panel order-7 lg:order-none" aria-label="Crescita">
-              <h2 className="h2">Crescita</h2>
-              <Stepper
-                label="TP"
-                value={d.tp}
-                disabled={!editable}
-                onChange={(v) => set("tp", v)}
-              />
-              {!readOnly && cost !== null && next && (
-                <>
+            {!readOnly && (next || species.evolutions.length > 0) && (
+              <section className="panel order-7 lg:order-none" aria-label="Crescita">
+                <h2 className="h2">Crescita</h2>
+                {next && (
                   <button
                     type="button"
                     className="btn btn-blue w-full"
-                    disabled={!editable || busy || d.tp < cost}
+                    disabled={!editable || busy}
                     onClick={doRankUp}
                   >
-                    Sali di rank (−{cost} TP)
+                    Sali di rank → {next}
                   </button>
-                  <span className="text-center text-[13px] text-muted">
-                    Prossimo rank: {next}
-                    {d.tp < cost ? ` · mancano ${cost - d.tp} TP` : ""}
-                  </span>
-                </>
-              )}
-              {!readOnly &&
-                species.evolutions.map((e) => (
+                )}
+                {species.evolutions.map((e) => (
                   <div key={e.toId} className="flex flex-col gap-1">
                     <button
                       type="button"
@@ -492,7 +477,8 @@ export function PokemonSheet(props: PokemonSheetProps) {
                     <span className="text-center text-[13px] text-muted">{e.method}</span>
                   </div>
                 ))}
-            </section>
+              </section>
+            )}
             <section className="panel order-9 gap-1 lg:order-none" aria-label="Legame">
               <h2 className="h2 mb-1">Legame</h2>
               {(
