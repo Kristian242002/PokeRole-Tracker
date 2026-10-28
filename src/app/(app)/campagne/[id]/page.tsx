@@ -90,19 +90,19 @@ export default async function CampaignPage({ params }: Params) {
           >
             {(
               [
-                ["Generatore", "Pokémon selvatici", "#ffe1e5"],
-                ["Biomi", "Specie e rarità", "#ddeedf"],
+                ["generatore", "Generatore", "Pokémon selvatici", "#ffe1e5"],
+                ["biomi", "Biomi", "Specie e rarità", "#ddeedf"],
               ] as const
-            ).map(([title, hint, bg]) => (
-              <div
-                key={title}
-                className="card flex flex-col gap-1 p-4 text-[#1b2440]"
+            ).map(([path, title, hint, bg]) => (
+              <Link
+                key={path}
+                href={`/campagne/${campaign.id}/${path}`}
+                className="card flex flex-col gap-1 p-4 text-[#1b2440] no-underline hover:text-[#1b2440]"
                 style={{ background: bg }}
               >
                 <span className="font-display text-xl font-semibold">{title}</span>
                 <span className="text-[13px] font-bold">{hint}</span>
-                <span className="tag tag-mut mt-1 self-start">In arrivo (fase 5)</span>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

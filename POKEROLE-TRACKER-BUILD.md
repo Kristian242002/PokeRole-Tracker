@@ -655,7 +655,8 @@ Per ogni Pokémon:
 3. **attributi** = base specie; distribuisci a caso i punti attributo del rank (§6.1), un punto alla volta su attributi sotto il proprio massimo; se tutti al massimo, i punti avanzati si perdono;
 4. **skill** = 0; distribuisci a caso i punti skill del rank sulle 12 skill del Pokémon, nessuna oltre il limite skill del rank;
 5. **mosse**: dal learnset con rank ≤ rank del Pokémon, estrai senza ripetizione fino a Insight + 3 (Insight appena generato);
-6. **abilità** a caso tra le normali (nascosta secondo opzione); **natura** a caso tra le 25; **genere** secondo `genderType`; sociali = 1; HP/Will pieni.
+6. **abilità** a caso tra le normali (nascosta secondo opzione); **natura** a caso tra le 25; **genere** secondo `genderType`; **sociali** = 1 più i punti sociali del rank distribuiti a caso (max 5, +2 a Champion, §6.1); HP/Will pieni.
+7. Gli attributi possono arrivare al massimo della specie + 2 a Champion (§6.2).
 
 ### 11.5 Risultato
 
