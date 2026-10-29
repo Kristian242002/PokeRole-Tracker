@@ -11,6 +11,7 @@ import { Sprite } from "@/components/Sprite";
 import { TrainerPortrait } from "@/components/TrainerPortrait";
 import { typeStyle } from "@/components/TypeBadge";
 import { speciesSummaries } from "@/lib/species";
+import { teamOrder } from "@/lib/team-order";
 
 export const metadata: Metadata = { title: "I miei allenatori" };
 
@@ -39,7 +40,7 @@ export default async function TrainersPage() {
             mine.map((t) => t.id),
           ),
         )
-        .orderBy(asc(pokemon.createdAt))
+        .orderBy(...teamOrder)
     : [];
   const species = await speciesSummaries(team.map((p) => p.speciesId));
   const total = team.length;

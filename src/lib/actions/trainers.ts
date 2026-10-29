@@ -149,3 +149,24 @@ export async function setTrainerImage(id: string, url: string | null): Promise<A
   revalidatePath("/allenatori");
   return ok(undefined);
 }
+
+/**
+ * Riposo (Fase 8): HP e Will al massimo e niente stati per l'allenatore e tutti i suoi Pokémon,
+ * in un'unica transazione. Funziona anche a scheda bloccata; solo il proprietario
+ * (il master sui propri allenatori della campagna, non sulle schede dei giocatori).
+ */
+export async function restTrainer(trainerId: string): Promise<ActionResult> {
+  const user = await currentUser();
+  if (!user) return fail(NOT_FOUND);
+  const trainer = await ownedTrainer(trainerId, user.id);
+  if (!trainer) return fail(NOT_FOUND);
+  const rested = { currentHp: null, currentWill: null, statuses: [] as string[] };
+  await db.transaction(async (tx) => {
+    await tx.update(trainers).set(rested).where(eq(trainers.id, trainer.id));
+    await tx.update(pokemon).set(rested).where(eq(pokemon.trainerId, trainer.id));
+  });
+  revalidatePath(`/allenatori/${trainer.id}`);
+  const campaignId = trainer.npcCampaignId ?? trainer.campaignId;
+  if (campaignId) revalidatePath(`/campagne/${campaignId}`);
+  return ok(undefined);
+}

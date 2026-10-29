@@ -9,6 +9,7 @@ import { campaigns, pokemon, trainers } from "@/db/schema";
 import { isUuid, masterCampaign } from "@/lib/access";
 import { deleteOwnBlob } from "@/lib/blob";
 import { generateJoinCode } from "@/lib/campaigns";
+import { nextPosition } from "@/lib/team-order";
 import { newTrainerValues } from "@/lib/trainer";
 import { NOT_FOUND, fail, ok, type ActionResult } from "./result";
 import { campaignSchema, trainerNameSchema, type CampaignInput } from "./schemas";
@@ -182,7 +183,10 @@ export async function sendPokemonTo(
     .limit(1);
   if (!target) return fail("Quell'allenatore non è collegato a questa campagna");
 
-  await db.update(pokemon).set({ trainerId: target.id }).where(eq(pokemon.id, pokemonId));
+  await db
+    .update(pokemon)
+    .set({ trainerId: target.id, position: await nextPosition(target.id) })
+    .where(eq(pokemon.id, pokemonId));
   revalidatePath(`/campagne/${source.campaignId}`);
   revalidatePath(`/allenatori/${source.from}`);
   revalidatePath(`/allenatori/${target.id}`);

@@ -49,6 +49,7 @@ test("campagne: codice, sola lettura del master, NPC e Invia a…", async ({
   await expect(master.getByLabel("Nome", { exact: true })).toBeDisabled();
   await expect(master.getByRole("button", { name: "Salva modifiche" })).toHaveCount(0);
   await expect(master.getByRole("button", { name: "Togli 1 HP" })).toHaveCount(0);
+  await expect(master.getByRole("button", { name: "Riposo", exact: true })).toHaveCount(0);
   await expect(master.getByRole("button", { name: "Elimina allenatore" })).toHaveCount(0);
 
   // Il master crea un NPC con un Pokémon

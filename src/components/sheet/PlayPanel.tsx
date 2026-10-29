@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useState, useTransition } from "react";
 import { STATUSES, painPenalty } from "@/lib/rules";
 
 function Meter({
@@ -72,6 +72,7 @@ export function PlayPanel({
   onHp,
   onWill,
   onStatuses,
+  rest,
   children,
 }: {
   hp: number;
@@ -84,9 +85,13 @@ export function PlayPanel({
   onHp: (v: number) => void;
   onWill: (v: number) => void;
   onStatuses: (v: string[]) => void;
+  /** Riposo (Fase 8): pulsante, domanda di conferma e messaggio finale; assente in sola lettura. */
+  rest?: { label: string; confirm: string; done: string; run: () => Promise<string | null> };
   /** Valori extra (Difesa, Iniziativa…). */
   children?: React.ReactNode;
 }) {
+  const [restMessage, setRestMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [resting, startRest] = useTransition();
   const pain = painPenalty(hp, hpMax);
   const infoId = useId();
   const [showInfo, setShowInfo] = useState(false);
@@ -193,6 +198,49 @@ export function PlayPanel({
             </dl>
           )}
         </div>
+        {rest && !readOnly && (
+          <div className="flex flex-wrap items-center gap-2.5 border-t-2 border-line pt-3">
+            <button
+              type="button"
+              className="btn btn-ghost h-11 px-4"
+              disabled={resting}
+              onClick={() => {
+                if (!window.confirm(rest.confirm)) return;
+                setRestMessage(null);
+                startRest(async () => {
+                  const error = await rest.run();
+                  setRestMessage(
+                    error ? { ok: false, text: error } : { ok: true, text: rest.done },
+                  );
+                });
+              }}
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />
+              </svg>
+              {resting ? "Riposo…" : rest.label}
+            </button>
+            {restMessage && (
+              <span
+                role={restMessage.ok ? "status" : "alert"}
+                className={restMessage.ok ? "tag tag-ok" : "form-error py-1.5 text-sm"}
+              >
+                {restMessage.ok && "✓ "}
+                {restMessage.text}
+              </span>
+            )}
+          </div>
+        )}
       </div>
       {children}
     </section>

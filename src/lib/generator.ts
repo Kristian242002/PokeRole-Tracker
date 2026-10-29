@@ -5,7 +5,6 @@
 import { RARITIES, RARITY_WEIGHT, type BiomeEntry, type Rarity } from "./biomes";
 import { randomGender } from "./pokemon";
 import {
-  ATTRIBUTE_LABEL,
   POKEMON_ATTRIBUTES,
   POKEMON_SKILLS,
   RANKS,
@@ -69,8 +68,6 @@ export interface GeneratedPokemon {
   social: Record<(typeof SOCIAL_ATTRIBUTES)[number], number>;
   skills: Record<string, number>;
   moves: string[];
-  /** Solo in modalità Ottimizzato: i due attributi/skill con peso maggiore. */
-  focus?: string[];
 }
 
 /** Dati di una mossa usati dal generatore (dal JSON delle mosse). */
@@ -146,7 +143,7 @@ function learnsetPool(
 function finish(
   species: GenSpecies,
   rank: Rank,
-  core: Pick<GeneratedPokemon, "attributes" | "skills" | "moves" | "focus">,
+  core: Pick<GeneratedPokemon, "attributes" | "skills" | "moves">,
   options: GenOptions,
   rng: Rng,
 ): GeneratedPokemon {
@@ -212,7 +209,6 @@ export function generateFor(
 
 const ATTRIBUTE_KEYS = new Set<string>(POKEMON_ATTRIBUTES);
 const SKILL_KEYS = new Set(POKEMON_SKILLS.map(skillKey));
-const SKILL_LABEL = new Map(POKEMON_SKILLS.map((s) => [skillKey(s), s]));
 const isAttack = (m: MoveInfo) => /Physical|Special/.test(m.category) && m.power > 0;
 
 /**
@@ -366,16 +362,7 @@ export function optimize(
   }
   distribute(skills, skillPoints, () => rules.skillLimit, rng);
 
-  // "Ottimizzato per": i due valori con peso maggiore tra attributi e skill.
-  const focus = [
-    ...[...weights.attributes].map(([k, w]) => [ATTRIBUTE_LABEL[k], w] as const),
-    ...[...skillWeights].map(([k, w]) => [SKILL_LABEL.get(k) ?? k, w] as const),
-  ]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 2)
-    .map(([label]) => label);
-
-  return finish(species, rank, { attributes, skills, moves, focus }, options, rng);
+  return finish(species, rank, { attributes, skills, moves }, options, rng);
 }
 
 /** Pokémon generati per un bioma (§11.4): specie per rarità, rank uniforme nell'intervallo. */

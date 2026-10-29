@@ -14,6 +14,7 @@ import { evolve } from "@/lib/evolution";
 import { newPokemonValues } from "@/lib/pokemon";
 import { RANK_RULES, isRank, nextRank } from "@/lib/rules";
 import { getSpecies } from "@/lib/species";
+import { nextPosition } from "@/lib/team-order";
 import { LOCKED, NOT_FOUND, fail, ok, type ActionResult } from "./result";
 import {
   playStateSchema,
@@ -39,7 +40,10 @@ export async function createPokemon(trainerId: string, speciesId: string): Promi
 
   const [created] = await db
     .insert(pokemon)
-    .values(newPokemonValues(trainer.id, species))
+    .values({
+      ...newPokemonValues(trainer.id, species),
+      position: await nextPosition(trainer.id),
+    })
     .returning({ id: pokemon.id, trainerId: pokemon.trainerId });
   revalidatePokemon(created);
   redirect(`/pokemon/${created.id}`);
@@ -156,7 +160,10 @@ export async function movePokemonToTrainer(id: string, trainerId: string): Promi
   const target = await ownedTrainer(trainerId, user.id);
   if (!target) return fail("Allenatore non trovato");
 
-  await db.update(pokemon).set({ trainerId: target.id }).where(eq(pokemon.id, id));
+  await db
+    .update(pokemon)
+    .set({ trainerId: target.id, position: await nextPosition(target.id) })
+    .where(eq(pokemon.id, id));
   revalidatePokemon(access.pokemon);
   revalidatePath(`/allenatori/${target.id}`);
   return ok(undefined);
@@ -185,5 +192,58 @@ export async function setPokemonImage(id: string, url: string | null): Promise<A
   await db.update(pokemon).set({ image: url }).where(eq(pokemon.id, id));
   if (access.pokemon.image !== url) await deleteOwnBlob(access.pokemon.image, user.id);
   revalidatePokemon(access.pokemon);
+  return ok(undefined);
+}
+
+/** Riposa (Fase 8): HP e Will al massimo e niente stati, solo per questo Pokémon. */
+export async function restPokemon(pokemonId: string): Promise<ActionResult> {
+  const user = await currentUser();
+  if (!user) return fail(NOT_FOUND);
+  const access = await ownedPokemon(pokemonId, user.id);
+  if (!access) return fail(NOT_FOUND);
+  await db
+    .update(pokemon)
+    .set({ currentHp: null, currentWill: null, statuses: [] })
+    .where(eq(pokemon.id, access.pokemon.id));
+  revalidatePokemon(access.pokemon);
+  return ok(undefined);
+}
+
+/**
+ * Riordino della squadra (Fase 9): `orderedIds` deve contenere esattamente i Pokémon
+ * dell'allenatore. Solo il proprietario, non a scheda bloccata.
+ */
+export async function reorderPokemon(
+  trainerId: string,
+  orderedIds: string[],
+): Promise<ActionResult> {
+  const user = await currentUser();
+  if (!user) return fail(NOT_FOUND);
+  const trainer = await ownedTrainer(trainerId, user.id);
+  if (!trainer) return fail(NOT_FOUND);
+  if (trainer.locked) return fail(LOCKED);
+
+  const current = await db
+    .select({ id: pokemon.id })
+    .from(pokemon)
+    .where(eq(pokemon.trainerId, trainer.id));
+  const ids = new Set(current.map((p) => p.id));
+  const valid =
+    Array.isArray(orderedIds) &&
+    orderedIds.length === ids.size &&
+    new Set(orderedIds).size === ids.size &&
+    orderedIds.every((id) => ids.has(id));
+  if (!valid) return fail("La squadra è cambiata: ricarica la pagina e riprova");
+
+  await db.transaction(async (tx) => {
+    for (const [position, id] of orderedIds.entries()) {
+      await tx.update(pokemon).set({ position }).where(eq(pokemon.id, id));
+    }
+  });
+  revalidatePath(`/allenatori/${trainer.id}`);
+  revalidatePath("/allenatori");
+  revalidatePath("/pokemon/miei");
+  const campaignId = trainer.npcCampaignId ?? trainer.campaignId;
+  if (campaignId) revalidatePath(`/campagne/${campaignId}`);
   return ok(undefined);
 }

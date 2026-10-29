@@ -114,5 +114,11 @@ export function usePlayState(
   /** Allinea ai dati del server (es. HP limitati dopo un'evoluzione). */
   const sync = useCallback((next: PlayValues) => setValues(next), []);
 
-  return { values, update, error, sync };
+  /** Invia subito le modifiche in attesa (prima di un'azione che riscrive HP e stati). */
+  const flushNow = useCallback(async () => {
+    if (timer.current) clearTimeout(timer.current);
+    await flush();
+  }, [flush]);
+
+  return { values, update, error, sync, flushNow };
 }

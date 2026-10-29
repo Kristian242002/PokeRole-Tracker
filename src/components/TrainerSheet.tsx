@@ -1,9 +1,10 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import {
   deleteTrainer,
+  restTrainer,
   setTrainerImage,
   setTrainerPlayState,
   updateTrainer,
@@ -26,14 +27,13 @@ import { computeWarnings } from "@/lib/warnings";
 import { AddPokemonPicker } from "./AddPokemonPicker";
 import { ImageTile } from "./ImageTile";
 import { RankIcon } from "./RankIcon";
-import { Sprite } from "./Sprite";
 import { TrainerPortrait } from "./TrainerPortrait";
-import { typeStyle } from "./TypeBadge";
 import { CampaignField, type TrainerCampaign } from "./sheet/CampaignField";
 import { usePlayState, useSheetDraft } from "./sheet/hooks";
 import { PlayPanel } from "./sheet/PlayPanel";
 import { SaveBar } from "./sheet/SaveBar";
 import { AttributesCard, SheetTopBar, SkillsCard, SocialCard } from "./sheet/Sections";
+import { TeamGrid, type TeamMember } from "./sheet/TeamGrid";
 import { WarningsBox } from "./sheet/WarningsBox";
 
 export interface TrainerSheetData extends TrainerUpdate {
@@ -51,16 +51,7 @@ export interface SheetBack {
   section: string;
 }
 
-export interface TeamMember {
-  id: string;
-  name: string;
-  species: string;
-  image: string;
-  type: string;
-  rank: string;
-  hp: number;
-  hpMax: number;
-}
+export type { TeamMember } from "./sheet/TeamGrid";
 
 /** Scheda allenatore (§10.6): in alto la parte in gioco, sotto la scheda. */
 export function TrainerSheet({
@@ -79,6 +70,7 @@ export function TrainerSheet({
   userId: string;
 }) {
   const [image, setImage] = useState(trainer.image);
+  const router = useRouter();
   const id = trainer.id;
   const sheet = useSheetDraft<TrainerUpdate>(
     {
@@ -275,6 +267,19 @@ export function TrainerSheet({
                 onHp={(v) => play.update({ currentHp: v })}
                 onWill={(v) => play.update({ currentWill: v })}
                 onStatuses={(v) => play.update({ statuses: v })}
+                rest={{
+                  label: "Riposo",
+                  confirm: `Riposo per ${d.name || "l'allenatore"} e i suoi Pokémon: HP e Will al massimo e niente stati?`,
+                  done: "Squadra riposata",
+                  run: async () => {
+                    await play.flushNow();
+                    const r = await restTrainer(id);
+                    if (!r.ok) return r.error;
+                    play.sync({ currentHp: null, currentWill: null, statuses: [], locked });
+                    router.refresh(); // HP dei Pokémon nei riquadri
+                    return null;
+                  },
+                }}
               />
             </div>
             <section
@@ -293,52 +298,7 @@ export function TrainerSheet({
                     : "Nessun Pokémon: cercane uno qui sotto in “Aggiungi Pokémon”."}
                 </p>
               )}
-              <ul className="grid grid-cols-2 gap-2.5">
-                {team.map((p) => (
-                  <li key={p.id}>
-                    <Link
-                      href={`/pokemon/${p.id}`}
-                      className="card flex h-full flex-col gap-2 rounded-[14px] p-3 shadow-[0_3px_0_var(--edge)]"
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <span
-                          className="tint grid size-11 flex-none place-items-center rounded-xl"
-                          style={typeStyle(p.type)}
-                        >
-                          <Sprite image={p.image} name={p.species} size={40} />
-                        </span>
-                        <span className="flex min-w-0 flex-col">
-                          <span className="truncate text-base font-bold">{p.name}</span>
-                          <span className="truncate text-[13px] text-muted">{p.species}</span>
-                        </span>
-                      </span>
-                      <span className="flex items-center justify-between text-[13px] font-bold">
-                        <span>
-                          HP {p.hp}/{p.hpMax}
-                        </span>
-                        <span className="text-muted">{p.rank}</span>
-                      </span>
-                      <span
-                        className="h-1.5 overflow-hidden rounded-sm bg-dot-empty"
-                        aria-hidden="true"
-                      >
-                        <span
-                          className="block h-1.5"
-                          style={{
-                            width: `${p.hpMax ? Math.round((p.hp / p.hpMax) * 100) : 0}%`,
-                            background:
-                              p.hp / p.hpMax <= 0.25
-                                ? "#e0412f"
-                                : p.hp / p.hpMax <= 0.5
-                                  ? "#f2b705"
-                                  : "#2fb566",
-                          }}
-                        />
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+              <TeamGrid trainerId={id} team={team} sortable={editable} />
               {!readOnly && <AddPokemonPicker trainerId={id} />}
             </section>
           </div>

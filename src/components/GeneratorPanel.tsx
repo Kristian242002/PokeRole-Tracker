@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import {
   generatePokemon,
   saveGenerated,
@@ -21,10 +21,13 @@ import {
 } from "@/lib/rules";
 import { AbilityInfo } from "./AbilityInfo";
 import { AttributeDots } from "./AttributeDots";
-import { Switch } from "./Filters";
+import type { DexEntry } from "./DexBrowser";
+import { Switch, normalize } from "./Filters";
 import { RankLabel } from "./RankIcon";
 import { Sprite } from "./Sprite";
+import { SuggestInput, type Suggestion } from "./SuggestInput";
 import { TypeBadges, typeStyle } from "./TypeBadge";
+import { useLazyJson } from "./useLazyJson";
 
 interface Target {
   id: string;
@@ -68,7 +71,28 @@ export function GeneratorPanel({
     legendary: false,
     fanmade: false,
     hiddenAbility: false,
+    speciesId: null,
   });
+  const [speciesQuery, setSpeciesQuery] = useState("");
+  const [speciesName, setSpeciesName] = useState<string | null>(null);
+  const dex = useLazyJson<DexEntry[]>("/api/specie");
+  const speciesOptions = useMemo<Suggestion[]>(
+    () =>
+      (dex.data ?? []).map((e) => ({
+        value: e.name,
+        hint: e.fanmade ? <span className="fan-badge">Fanmade</span> : undefined,
+      })),
+    [dex.data],
+  );
+
+  function pickSpecies(name: string) {
+    const entry = dex.data?.find((e) => normalize(e.name) === normalize(name));
+    if (!entry) return setError(`Nessuna specie chiamata "${name.trim()}"`);
+    setError(null);
+    setSpeciesQuery("");
+    setSpeciesName(entry.name);
+    set("speciesId", entry.id);
+  }
   const [results, setResults] = useState<Result[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -108,12 +132,54 @@ export function GeneratorPanel({
           Impostazioni
         </h2>
         <div className="flex flex-col gap-1.5">
+          <label htmlFor="gen-species" className="label">
+            Pokémon specifico (facoltativo)
+          </label>
+          {speciesName ? (
+            <div className="flex items-center gap-2 rounded-xl border-2 border-edge bg-warn-bg px-3 py-2">
+              <span className="flex-1 font-extrabold" data-testid="gen-species">
+                Solo {speciesName}
+              </span>
+              <button
+                type="button"
+                className="btn btn-ghost h-9 px-2.5 text-sm"
+                onClick={() => {
+                  setSpeciesName(null);
+                  set("speciesId", null);
+                }}
+              >
+                Togli
+              </button>
+            </div>
+          ) : (
+            <div onFocus={() => void dex.load()}>
+              <SuggestInput
+                id="gen-species"
+                value={speciesQuery}
+                options={speciesOptions}
+                placeholder="Cerca per nome e premi Invio"
+                onChange={(v) => {
+                  setSpeciesQuery(v);
+                  setError(null);
+                }}
+                onPick={pickSpecies}
+              />
+            </div>
+          )}
+          <span className="text-[13px] text-muted">
+            {speciesName
+              ? "Genero solo questa specie: bioma e rarità non contano."
+              : "Lascia vuoto per pescare dal bioma."}
+          </span>
+        </div>
+        <div className="flex flex-col gap-1.5">
           <label htmlFor="gen-biome" className="label">
             Bioma
           </label>
           <select
             id="gen-biome"
             className="sheet-field"
+            disabled={!!speciesName}
             value={settings.biome}
             onChange={(e) => set("biome", e.target.value as GeneratorRequest["biome"])}
           >
@@ -342,11 +408,6 @@ function GeneratedCard({
             </span>
           </span>
         </div>
-        {p.focus && p.focus.length > 0 && (
-          <p className="m-0 text-sm font-bold" data-testid="optimized-for">
-            Ottimizzato per: {p.focus.join(" + ")}
-          </p>
-        )}
         {p.ability && <AbilityInfo name={p.ability} effect={view.abilityEffect || null} />}
         <div className="flex flex-col gap-1" aria-label="Attributi">
           {POKEMON_ATTRIBUTES.map((a) => (

@@ -9,6 +9,7 @@ import {
   evolvePokemon,
   movePokemonToTrainer,
   rankUp,
+  restPokemon,
   setPokemonImage,
   setPokemonPlayState,
   updatePokemon,
@@ -439,6 +440,18 @@ export function PokemonSheet(props: PokemonSheetProps) {
                 onHp={(v) => play.update({ currentHp: v })}
                 onWill={(v) => play.update({ currentWill: v })}
                 onStatuses={(v) => play.update({ statuses: v })}
+                rest={{
+                  label: "Riposa",
+                  confirm: `Far riposare ${displayName}: HP e Will al massimo e niente stati?`,
+                  done: "Pokémon riposato",
+                  run: async () => {
+                    await play.flushNow();
+                    const r = await restPokemon(p.id);
+                    if (!r.ok) return r.error;
+                    play.sync({ currentHp: null, currentWill: null, statuses: [], locked });
+                    return null;
+                  },
+                }}
               >
                 <div className="grid grid-cols-3 gap-2">
                   <div className="mini-stat">

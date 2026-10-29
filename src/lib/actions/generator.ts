@@ -20,7 +20,8 @@ import {
   maxWill,
   skillKey,
 } from "@/lib/rules";
-import { getSpecies } from "@/lib/species";
+import { getSpecies, type ResolvedSpecies } from "@/lib/species";
+import { nextPosition } from "@/lib/team-order";
 import { fail, ok, type ActionResult } from "./result";
 
 const NATURE_NAMES = NATURES.map((n) => n.name);
@@ -35,6 +36,8 @@ const settingsSchema = z.object({
   legendary: z.boolean(),
   fanmade: z.boolean(),
   hiddenAbility: z.boolean(),
+  /** Pokémon specifico: se c'è, si genera solo quella specie (il bioma non conta). */
+  speciesId: z.string().max(80).nullable(),
 });
 export type GeneratorRequest = z.infer<typeof settingsSchema>;
 
@@ -77,11 +80,33 @@ export async function generatePokemon(
   if (!parsed.success) return fail(parsed.error.issues[0].message);
   const settings = parsed.data;
 
-  const { species, tables } = await campaignTables(campaignId, user.id, [settings.biome]);
+  let species: ResolvedSpecies[];
+  let table: Parameters<typeof generate>[0];
+  if (settings.speciesId) {
+    // Specie scelta per nome: una tabella con lei sola, senza filtri di rarità o leggendari.
+    const chosen = await getSpecies(settings.speciesId, user.id);
+    if (!chosen) return fail("Specie non trovata");
+    species = [chosen];
+    table = [
+      {
+        speciesId: chosen.id,
+        rarity: "common",
+        autoRarity: "common",
+        legendary: false,
+        source: "added",
+        overridden: false,
+        fanmade: chosen.fanmade,
+      },
+    ];
+  } else {
+    const loaded = await campaignTables(campaignId, user.id, [settings.biome]);
+    species = loaded.species;
+    const fanmadeIds = new Set(species.filter((s) => s.fanmade).map((s) => s.id));
+    table = loaded.tables
+      .get(settings.biome)!
+      .map((e) => ({ ...e, fanmade: fanmadeIds.has(e.speciesId) }));
+  }
   const byId = new Map(species.map((s) => [s.id, s]));
-  const table = tables
-    .get(settings.biome)!
-    .map((e) => ({ ...e, fanmade: byId.get(e.speciesId)?.fanmade ?? false }));
   const result = generate(
     table,
     new Map(species.map((s) => [s.id, toGenSpecies(s)])),
@@ -130,6 +155,7 @@ async function insertGenerated(trainerId: string, input: unknown, userId: string
     .insert(pokemon)
     .values({
       trainerId,
+      position: await nextPosition(trainerId),
       speciesId: species.id,
       rank: g.rank,
       gender: g.gender,

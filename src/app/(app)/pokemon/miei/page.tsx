@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { pokemon, trainers } from "@/db/schema";
 import { BoxBrowser, type BoxEntry } from "@/components/BoxBrowser";
 import { speciesSummaries } from "@/lib/species";
+import { teamOrder } from "@/lib/team-order";
 
 export const metadata: Metadata = { title: "I miei Pokémon" };
 
@@ -29,7 +30,7 @@ export default async function MyPokemonPage() {
     .from(pokemon)
     .innerJoin(trainers, eq(trainers.id, pokemon.trainerId))
     .where(mine)
-    .orderBy(asc(pokemon.createdAt));
+    .orderBy(asc(trainers.createdAt), ...teamOrder);
 
   const species = await speciesSummaries(rows.map((r) => r.speciesId));
   const entries: BoxEntry[] = rows.map((r) => {

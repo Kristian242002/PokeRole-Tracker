@@ -50,7 +50,6 @@ describe("generatore Ottimizzato (§11.5b)", () => {
       for (let seed = 0; seed < 5; seed++) {
         const p = optimize(SPECIAL_ONLY, rank, seededRng(seed), options);
         expect(p.attributes.strength).toBe(1);
-        expect(p.focus?.[0]).toBe("Special");
       }
     }
   });
@@ -85,7 +84,6 @@ describe("generatore Ottimizzato (§11.5b)", () => {
     expect(p.skills.alert).toBe(2);
     expect(p.skills.clash).toBe(2);
     expect(Object.values(p.skills).reduce((n, v) => n + v, 0)).toBe(10);
-    expect(p.focus).toEqual(["Special", "Channel"]); // l'esempio di §11.5b
   });
 
   it("pesi: danno ×2, precisione ×1, alternative alla più alta", () => {

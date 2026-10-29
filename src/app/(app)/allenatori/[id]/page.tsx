@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { asc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { requireUser } from "@/auth";
 import { db } from "@/db";
 import { pokemon } from "@/db/schema";
@@ -9,6 +9,7 @@ import { trainerAccess } from "@/lib/access";
 import { maxHp, shownCurrent } from "@/lib/rules";
 import { sheetContext } from "@/lib/sheet-context";
 import { speciesSummaries } from "@/lib/species";
+import { teamOrder } from "@/lib/team-order";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -27,7 +28,7 @@ export default async function TrainerPage({ params }: Params) {
     .select()
     .from(pokemon)
     .where(eq(pokemon.trainerId, trainer.id))
-    .orderBy(asc(pokemon.createdAt));
+    .orderBy(...teamOrder);
   const species = await speciesSummaries(rows.map((p) => p.speciesId));
   const team: TeamMember[] = rows.map((p) => {
     const s = species.get(p.speciesId);

@@ -47,13 +47,27 @@ test("generatore e biomi: genera, salva su NPC, invia a un giocatore, correzioni
   await master.getByRole("button", { name: "Genera", exact: true }).click();
   const cards = master.getByRole("article");
   await expect(cards).toHaveCount(3);
-  await expect(master.getByTestId("optimized-for").first()).toContainText(/^Ottimizzato per: /);
 
-  // Casuale: niente riga "Ottimizzato per"
+  // Anche in Casuale
   await mode.getByRole("button", { name: "Casuale" }).click();
   await master.getByRole("button", { name: "Genera", exact: true }).click();
-  await expect(master.getByTestId("optimized-for")).toHaveCount(0);
   await expect(cards).toHaveCount(3);
+
+  // Pokémon specifico per nome: solo quella specie, il bioma non conta
+  const speciesField = master.getByRole("combobox", { name: "Pokémon specifico (facoltativo)" });
+  await speciesField.click();
+  await speciesField.fill("Pikach");
+  await expect(master.getByRole("option", { name: "Pikachu" })).toBeVisible();
+  await speciesField.press("ArrowDown");
+  await speciesField.press("Enter");
+  await expect(master.getByTestId("gen-species")).toHaveText("Solo Pikachu");
+  await expect(master.getByLabel("Bioma")).toBeDisabled();
+  await master.getByRole("button", { name: "Genera", exact: true }).click();
+  await expect(cards).toHaveCount(3);
+  for (const card of await cards.all())
+    await expect(card).toHaveAttribute("aria-label", "Pikachu generato");
+  await master.getByRole("button", { name: "Togli", exact: true }).click();
+  await expect(master.getByLabel("Bioma")).toBeEnabled();
   await mode.getByRole("button", { name: "Ottimizzato" }).click();
   await master.getByRole("button", { name: "Genera", exact: true }).click();
   await expect(cards).toHaveCount(3);

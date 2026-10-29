@@ -21,6 +21,7 @@ import { createNpcTrainer } from "@/lib/actions/campaigns";
 import { masterCampaign } from "@/lib/access";
 import { maxHp, shownCurrent } from "@/lib/rules";
 import { speciesSummaries } from "@/lib/species";
+import { teamOrder } from "@/lib/team-order";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -51,7 +52,7 @@ export default async function CampaignPage({ params }: Params) {
         .select()
         .from(pokemon)
         .where(inArray(pokemon.trainerId, trainerIds))
-        .orderBy(asc(pokemon.createdAt))
+        .orderBy(...teamOrder)
     : [];
   const species = await speciesSummaries(team.map((p) => p.speciesId));
   const members = (trainerId: string) =>

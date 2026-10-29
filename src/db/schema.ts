@@ -114,6 +114,8 @@ export const pokemon = pgTable(
     statuses: jsonb("statuses").$type<string[]>().notNull().default([]),
     happiness: integer("happiness").notNull().default(2),
     loyalty: integer("loyalty").notNull().default(2),
+    /** Ordine nella squadra dell'allenatore (Fase 9): position, poi created_at. */
+    position: integer("position").notNull().default(0),
     notes: text("notes").notNull().default(""),
     locked: boolean("locked").notNull().default(false),
     createdAt: createdAt(),

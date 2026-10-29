@@ -422,6 +422,7 @@ pokemon
   statuses jsonb string[]
   happiness integer default 2        // 0–5
   loyalty integer default 2          // 0–5
+  position integer default 0         // ordine nella squadra (Fase 9): position, poi created_at; i nuovi in fondo
   notes text default ''
   locked boolean default false
   created_at, updated_at
@@ -644,7 +645,8 @@ Escludi dalla tabella automatica le forme **Mega** (id contenente `mega-form`) e
 
 ### 11.3 Impostazioni
 
-Bioma; rank minimo e massimo (rank del Pokémon estratto uniforme nell'intervallo); quantità 1–6; leggendari sì/no; fanmade sì/no (i fanmade visibili al master entrano per tipo come gli ufficiali, salvo correzioni); abilità nascosta possibile sì/no (se sì, 20% di probabilità).
+Bioma; rank minimo e massimo (rank del Pokémon estratto uniforme nell'intervallo); quantità 1–6; leggendari sì/no; fanmade sì/no (i fanmade visibili al master entrano per tipo come gli ufficiali, salvo correzioni); abilità nascosta possibile sì/no (se sì, 20% di probabilità); distribuzione punti Casuale/Ottimizzato (§11.5b).
+**Pokémon specifico** (facoltativo, ricerca per nome tra ufficiali e fanmade visibili): se scelto, si genera solo quella specie e bioma, rarità e filtri leggendari/fanmade non contano.
 
 ### 11.4 Algoritmo (puro, RNG iniettabile per i test)
 
@@ -676,7 +678,6 @@ Nelle impostazioni del generatore: **Distribuzione punti: Casuale / Ottimizzato*
 3. **Attributi**: una quota minima va a Vitality (1 punto ogni 4 punti del rank); il resto in proporzione ai pesi (metodo D'Hondt) su Strength/Dexterity/Special/Insight/Vitality, senza superare i massimi; se un attributo è al massimo il punto va al successivo per peso. Gli attributi con peso 0 restano alla base. Se tutti quelli con peso sono al massimo il punto va a Vitality, altrimenti si perde. Senza mosse d'attacco si distribuisce come in Casuale.
 4. **Skill**: prima le skill di precisione delle mosse, alzate fino al limite skill del rank; poi Evasion, Alert (iniziativa) e Clash, in quest'ordine; i punti avanzati a caso sulle altre skill. Mai oltre il limite.
 5. Se Insight è salito, aggiungi mosse fino al nuovo limite con lo stesso criterio del punto 1.
-6. Sulla scheda generata la riga "Ottimizzato per: Special + Channel" (i due valori con peso maggiore).
 
 Test: un Pokémon con sole mosse Special non riceve punti in Strength; nessuna skill oltre il limite; punti spesi = punti del rank (salvo massimi raggiunti).
 
@@ -701,8 +702,8 @@ Elenco biomi; per ognuno le specie (sprite, nome, rarità effettiva). Il master 
 Organizzate in `src/lib/actions/<dominio>.ts` con `"use server"`. Ogni azione: legge la sessione, verifica i permessi (§8), valida con zod, scrive, `revalidatePath` delle pagine coinvolte. Errori di validazione restituiti come `{ ok:false, error:"messaggio italiano" }`, mai eccezioni non gestite per errori dell'utente.
 
 - **account**: `register`, `login`, `logout`
-- **trainers**: `createTrainer`, `updateTrainer`, `deleteTrainer`, `setTrainerPlayState` (hp, will, statuses — salvataggio immediato), `joinCampaign(code)`, `leaveCampaign`
-- **pokemon**: `createPokemon(trainerId, speciesId)`, `updatePokemon`, `deletePokemon`, `setPokemonPlayState`, `rankUp` (rank successivo), `evolvePokemon(toSpeciesId)` (usa `lib/evolution.ts`), `movePokemonToTrainer(trainerId)` (tra i propri)
+- **trainers**: `createTrainer`, `updateTrainer`, `deleteTrainer`, `setTrainerPlayState` (hp, will, statuses — salvataggio immediato), `joinCampaign(code)`, `leaveCampaign`, `restTrainer(trainerId)` (Fase 8), `setTrainerImage`
+- **pokemon**: `createPokemon(trainerId, speciesId)`, `updatePokemon`, `deletePokemon`, `setPokemonPlayState`, `rankUp` (rank successivo), `evolvePokemon(toSpeciesId)` (usa `lib/evolution.ts`), `movePokemonToTrainer(trainerId)` (tra i propri), `restPokemon(pokemonId)` (Fase 8), `reorderPokemon(trainerId, orderedIds)` (Fase 9), `setPokemonImage`
 - **fanmade**: `createFanmade`, `updateFanmade`, `deleteFanmade`
 - **campaigns**: `createCampaign`, `updateCampaign`, `deleteCampaign`, `regenerateCode`, `removePlayer(trainerId)`, `createNpcTrainer`, `sendPokemonTo(pokemonId, playerTrainerId)`
 - **generator**: `saveGenerated(campaignId, trainerId, generated)` (valida che il Pokémon sia coerente: specie esistente, rank valido), `sendGenerated(campaignId, playerTrainerId, generated)`
@@ -777,6 +778,23 @@ Ogni fase si chiude con: `typecheck`, `lint`, `test`, `test:e2e` (scenari della 
 **Fase 7 — Rifinitura**
 
 - Accessibilità (tastiera, lettori di schermo base), prestazioni su telefono, stati vuoti con indicazioni ("Non hai ancora allenatori: creane uno"), pagine 404, messaggi d'errore chiari.
+
+**Fase 8 — Riposo della squadra**
+
+- Scheda allenatore, parte "in gioco": pulsante **"Riposo"**. Con conferma riporta HP e Will al massimo (`current_hp` e `current_will` a null) e svuota gli stati dell'allenatore e di tutti i suoi Pokémon, in un'unica transazione. Dopo l'azione: "Squadra riposata".
+- Scheda Pokémon: pulsante **"Riposa"**, lo stesso solo su quel Pokémon ("Pokémon riposato").
+- Funziona anche a scheda bloccata. Il master può usarlo sui propri allenatori della campagna, non sulle schede dei giocatori (sola lettura).
+- Server action `restTrainer(trainerId)` e `restPokemon(pokemonId)` con controllo di proprietà.
+- ✅ E2E: allenatore e Pokémon feriti con stati, scheda bloccata → Riposo → valori pieni e stati vuoti anche dopo la ricarica; Riposa sul singolo Pokémon; nessun pulsante nella vista del master.
+
+**Fase 9 — Riordino dei Pokémon**
+
+- Scheda allenatore, "I suoi Pokémon": riordino con drag & drop (`@dnd-kit/core`, `@dnd-kit/sortable`). L'ordine si salva e vale ovunque compaiono i Pokémon di quell'allenatore.
+- Telefono: trascinamento con pressione prolungata (~250 ms), il tocco breve apre la scheda. Mouse: trascinamento dopo 6 px, il clic apre la scheda (il clic che chiude un trascinamento no). Tastiera: spazio per prendere, frecce, spazio per lasciare, Esc per annullare; Invio apre la scheda.
+- Colonna `position` (§7); ordinamento per position poi created_at; i nuovi Pokémon (creati, generati, spostati, inviati) vanno in fondo.
+- Server action `reorderPokemon(trainerId, orderedIds)` con controllo di proprietà (deve contenere esattamente i Pokémon dell'allenatore); aggiornamento ottimistico, e se il salvataggio fallisce torna all'ordine precedente con un messaggio d'errore.
+- Disattivato a scheda bloccata e nella vista in sola lettura del master.
+- ✅ E2E: sposta il terzo Pokémon al primo posto (tastiera; su desktop anche col mouse), ricarica, l'ordine resta (anche in I miei Pokémon).
 
 ---
 
