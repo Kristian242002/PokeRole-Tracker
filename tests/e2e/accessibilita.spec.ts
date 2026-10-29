@@ -59,7 +59,7 @@ for (const scheme of ["light", "dark"] as const) {
     const campaign = page.url();
     await audit(page, "campagna", found);
     await page.goto(`${campaign}/generatore`);
-    await page.getByRole("button", { name: "Genera" }).click();
+    await page.getByRole("button", { name: "Genera", exact: true }).click();
     await expect(page.getByRole("article").first()).toBeVisible();
     await audit(page, "generatore", found);
     await page.goto(`${campaign}/biomi`);

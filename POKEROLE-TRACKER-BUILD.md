@@ -667,6 +667,19 @@ Ogni Pokémon mostrato con la **stessa grafica della scheda** (§10.8, in sola l
 - **Invia a…** → scegli un allenatore di giocatore collegato → crea il Pokémon direttamente lì.
   Il risultato non salvato vive solo nello stato del client.
 
+### 11.5b Modalità "Ottimizzato"
+
+Nelle impostazioni del generatore: **Distribuzione punti: Casuale / Ottimizzato** (predefinito Ottimizzato). In modalità Ottimizzato (funzione pura `optimize(species, rank, rng)` in `lib/generator.ts`, testata):
+
+1. **Mosse prima**: dal learnset con rank ≤ rank del Pokémon scegli N = Insight base + 3 mosse (lo stesso limite delle schede, `moveLimit`), preferendo le mosse d'attacco (Physical/Special) con tipo uguale a quello del Pokémon e potenza più alta, più 1 mossa Support se disponibile; un po' di casualità tra mosse di valore simile.
+2. **Pesi**: per ogni mossa scelta conta gli attributi usati in precisione (`accuracy[0]`) e danno (`damage[0]`), e le skill della precisione (`accuracy[1]`). Le alternative (es. "Channel/Nature", "Dexterity/Strength") prendono quella che il Pokémon ha già più alta, altrimenti la prima; le voci che non sono attributi o skill del Pokémon (sociali, casi speciali) si ignorano. Peso: danno ×2, precisione ×1.
+3. **Attributi**: una quota minima va a Vitality (1 punto ogni 4 punti del rank); il resto in proporzione ai pesi (metodo D'Hondt) su Strength/Dexterity/Special/Insight/Vitality, senza superare i massimi; se un attributo è al massimo il punto va al successivo per peso. Gli attributi con peso 0 restano alla base. Se tutti quelli con peso sono al massimo il punto va a Vitality, altrimenti si perde. Senza mosse d'attacco si distribuisce come in Casuale.
+4. **Skill**: prima le skill di precisione delle mosse, alzate fino al limite skill del rank; poi Evasion, Alert (iniziativa) e Clash, in quest'ordine; i punti avanzati a caso sulle altre skill. Mai oltre il limite.
+5. Se Insight è salito, aggiungi mosse fino al nuovo limite con lo stesso criterio del punto 1.
+6. Sulla scheda generata la riga "Ottimizzato per: Special + Channel" (i due valori con peso maggiore).
+
+Test: un Pokémon con sole mosse Special non riceve punti in Strength; nessuna skill oltre il limite; punti spesi = punti del rank (salvo massimi raggiunti).
+
 ### 11.6 Pagina Biomi
 
 Elenco biomi; per ognuno le specie (sprite, nome, rarità effettiva). Il master può: aggiungere una specie (ricerca), toglierla, cambiarne la rarità, ripristinare l'automatico.

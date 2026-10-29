@@ -61,6 +61,7 @@ export function GeneratorPanel({
 }) {
   const [settings, setSettings] = useState<GeneratorRequest>({
     biome: "forest",
+    mode: "optimized",
     rankMin: "Starter",
     rankMax: "Rookie",
     quantity: 3,
@@ -146,6 +147,33 @@ export function GeneratorPanel({
               </select>
             </div>
           ))}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span id="gen-mode" className="label">
+            Distribuzione punti
+          </span>
+          <div role="group" aria-labelledby="gen-mode" className="segmented">
+            {(
+              [
+                ["random", "Casuale"],
+                ["optimized", "Ottimizzato"],
+              ] as const
+            ).map(([mode, label]) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={settings.mode === mode}
+                onClick={() => set("mode", mode)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <span className="text-[13px] text-muted">
+            {settings.mode === "optimized"
+              ? "Mosse forti del suo tipo, poi attributi e skill che servono a usarle."
+              : "Punti e mosse distribuiti a caso, nel rispetto del rank."}
+          </span>
         </div>
         <div className="flex items-center justify-between">
           <span className="font-extrabold">Quantità</span>
@@ -314,6 +342,11 @@ function GeneratedCard({
             </span>
           </span>
         </div>
+        {p.focus && p.focus.length > 0 && (
+          <p className="m-0 text-sm font-bold" data-testid="optimized-for">
+            Ottimizzato per: {p.focus.join(" + ")}
+          </p>
+        )}
         {p.ability && <AbilityInfo name={p.ability} effect={view.abilityEffect || null} />}
         <div className="flex flex-col gap-1" aria-label="Attributi">
           {POKEMON_ATTRIBUTES.map((a) => (

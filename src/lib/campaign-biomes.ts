@@ -61,6 +61,7 @@ export function toGenSpecies(s: ResolvedSpecies): GenSpecies {
   return {
     id: s.id,
     fanmade: s.fanmade,
+    types: s.types,
     genderType: s.genderType,
     attributes: s.attributes,
     abilities: s.abilities,

@@ -39,8 +39,23 @@ test("generatore e biomi: genera, salva su NPC, invia a un giocatore, correzioni
   await master.getByLabel("Rank da").selectOption("Rookie");
   await master.getByLabel("Rank a").selectOption("Standard");
   await expect(master.locator('output[aria-label="Quantità"]')).toHaveText("3");
-  await master.getByRole("button", { name: "Genera" }).click();
+  const mode = master.getByRole("group", { name: "Distribuzione punti" });
+  await expect(mode.getByRole("button", { name: "Ottimizzato" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await master.getByRole("button", { name: "Genera", exact: true }).click();
   const cards = master.getByRole("article");
+  await expect(cards).toHaveCount(3);
+  await expect(master.getByTestId("optimized-for").first()).toContainText(/^Ottimizzato per: /);
+
+  // Casuale: niente riga "Ottimizzato per"
+  await mode.getByRole("button", { name: "Casuale" }).click();
+  await master.getByRole("button", { name: "Genera", exact: true }).click();
+  await expect(master.getByTestId("optimized-for")).toHaveCount(0);
+  await expect(cards).toHaveCount(3);
+  await mode.getByRole("button", { name: "Ottimizzato" }).click();
+  await master.getByRole("button", { name: "Genera", exact: true }).click();
   await expect(cards).toHaveCount(3);
   for (const card of await cards.all()) {
     await expect(card).toContainText(/Rookie|Standard/);
@@ -69,7 +84,7 @@ test("generatore e biomi: genera, salva su NPC, invia a un giocatore, correzioni
   // Invia il secondo al giocatore → compare tra i suoi Pokémon
   await master.goBack();
   await master.getByLabel("Bioma").selectOption("forest");
-  await master.getByRole("button", { name: "Genera" }).click();
+  await master.getByRole("button", { name: "Genera", exact: true }).click();
   await expect(cards).toHaveCount(3);
   const second = cards.nth(1);
   const species = (await second.getAttribute("aria-label"))!.replace(" generato", "");
@@ -77,7 +92,8 @@ test("generatore e biomi: genera, salva su NPC, invia a un giocatore, correzioni
   await second.getByRole("button", { name: `Lea (@${playerName})` }).click();
   await expect(second.getByText("✓ Inviato a Lea")).toBeVisible();
   await player.goto("/pokemon/miei");
-  await expect(player.getByRole("link", { name: new RegExp(species) }).first()).toBeVisible();
+  // Testo esatto, non regex: i nomi possono contenere parentesi, es. "Poltchageist (Artisan Form)".
+  await expect(player.getByRole("link").filter({ hasText: species }).first()).toBeVisible();
 
   // Biomi: correzioni del master
   await master.goto(campaignUrl);

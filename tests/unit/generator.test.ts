@@ -174,6 +174,7 @@ describe("generatore (RNG fisso)", () => {
       table,
       speciesById,
       {
+        mode: "random",
         rankMin: "Standard",
         rankMax: "Rookie",
         quantity: 6,

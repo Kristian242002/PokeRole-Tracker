@@ -28,6 +28,7 @@ const CAMPAIGN_NOT_FOUND = "Campagna non trovata";
 
 const settingsSchema = z.object({
   biome: z.enum(BIOME_CODES, "Bioma non valido"),
+  mode: z.enum(["random", "optimized"], "Distribuzione non valida"),
   rankMin: z.enum(RANKS),
   rankMax: z.enum(RANKS),
   quantity: z.number().int().min(1, "Da 1 a 6 Pokémon").max(6, "Da 1 a 6 Pokémon"),
@@ -87,7 +88,7 @@ export async function generatePokemon(
     settings,
     NATURE_NAMES,
     Math.random,
-    (name) => findMove(name)?.name,
+    (name) => findMove(name),
   );
   if (result.length === 0) {
     return fail("Nessuna specie adatta in questo bioma con queste impostazioni");
