@@ -32,7 +32,12 @@ export default async function TrainersPage() {
 
   const team = mine.length
     ? await db
-        .select({ id: pokemon.id, trainerId: pokemon.trainerId, speciesId: pokemon.speciesId })
+        .select({
+          id: pokemon.id,
+          trainerId: pokemon.trainerId,
+          speciesId: pokemon.speciesId,
+          inBox: pokemon.inBox,
+        })
         .from(pokemon)
         .where(
           inArray(
@@ -61,6 +66,9 @@ export default async function TrainersPage() {
           <ul className="grid gap-4 lg:grid-cols-[repeat(auto-fill,minmax(360px,1fr))] lg:gap-5">
             {mine.map((t) => {
               const members = team.filter((p) => p.trainerId === t.id);
+              // L'anteprima mostra solo la squadra; il box è solo contato (Fase 10).
+              const squad = members.filter((p) => !p.inBox);
+              const boxed = members.length - squad.length;
               return (
                 <li key={t.id}>
                   <Link href={`/allenatori/${t.id}`} className="card flex gap-4 p-4">
@@ -69,14 +77,16 @@ export default async function TrainersPage() {
                       <span className="truncate font-display text-2xl font-semibold">{t.name}</span>
                       <span className="flex items-center gap-1.5 text-[15px]">
                         <RankLabel rank={t.rank} /> ·{" "}
-                        {members.length === 0 ? "nessun Pokémon" : `${members.length} Pokémon`}
+                        {members.length === 0
+                          ? "nessun Pokémon"
+                          : `${squad.length} in squadra${boxed ? ` · ${boxed} nel box` : ""}`}
                       </span>
                       <span className={`tag self-start ${t.campaign ? "tag-info" : "tag-mut"}`}>
                         {t.campaign ? `Campagna ${t.campaign}` : "Nessuna campagna"}
                       </span>
-                      {members.length > 0 && (
+                      {squad.length > 0 && (
                         <span className="flex flex-wrap gap-1.5">
-                          {members.slice(0, 6).map((p) => {
+                          {squad.map((p) => {
                             const s = species.get(p.speciesId);
                             return (
                               <span

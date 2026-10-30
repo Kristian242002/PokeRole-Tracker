@@ -287,19 +287,18 @@ export function TrainerSheet({
               className="panel order-9 scroll-mt-20 lg:order-none"
               aria-label="I suoi Pokémon"
             >
-              <div className="flex items-center justify-between">
-                <h2 className="h2">I suoi Pokémon</h2>
-                <span className="cnt">{team.length}</span>
-              </div>
-              {team.length === 0 && (
-                <p className="m-0 text-muted">
-                  {readOnly
+              <TeamGrid
+                trainerId={id}
+                team={team}
+                sortable={editable}
+                empty={
+                  readOnly
                     ? "Nessun Pokémon."
-                    : "Nessun Pokémon: cercane uno qui sotto in “Aggiungi Pokémon”."}
-                </p>
-              )}
-              <TeamGrid trainerId={id} team={team} sortable={editable} />
-              {!readOnly && <AddPokemonPicker trainerId={id} />}
+                    : "Nessun Pokémon: cercane uno qui sotto in “Aggiungi Pokémon”."
+                }
+              >
+                {!readOnly && <AddPokemonPicker trainerId={id} />}
+              </TeamGrid>
             </section>
           </div>
 

@@ -6,16 +6,16 @@ import { redirect } from "next/navigation";
 import { currentUser } from "@/auth";
 import { db } from "@/db";
 import { pokemon } from "@/db/schema";
-import { ownedPokemon, ownedTrainer, type Pokemon } from "@/lib/access";
+import { ownedPokemon, ownedTrainer, type Pokemon, type Trainer } from "@/lib/access";
 import { deleteOwnBlob } from "@/lib/blob";
 import { findMove } from "@/lib/data";
 import { isOwnBlobUrl } from "@/lib/images";
 import { evolve } from "@/lib/evolution";
 import { newPokemonValues } from "@/lib/pokemon";
-import { RANK_RULES, isRank, nextRank } from "@/lib/rules";
+import { RANK_RULES, TEAM_SIZE, isRank, nextRank } from "@/lib/rules";
 import { getSpecies } from "@/lib/species";
-import { nextPosition } from "@/lib/team-order";
-import { LOCKED, NOT_FOUND, fail, ok, type ActionResult } from "./result";
+import { nextSlot } from "@/lib/team-order";
+import { LOCKED, NOT_FOUND, TEAM_FULL, fail, ok, type ActionResult } from "./result";
 import {
   playStateSchema,
   pokemonUpdateSchema,
@@ -42,7 +42,7 @@ export async function createPokemon(trainerId: string, speciesId: string): Promi
     .insert(pokemon)
     .values({
       ...newPokemonValues(trainer.id, species),
-      position: await nextPosition(trainer.id),
+      ...(await nextSlot(trainer.id)),
     })
     .returning({ id: pokemon.id, trainerId: pokemon.trainerId });
   revalidatePokemon(created);
@@ -151,22 +151,27 @@ export async function evolvePokemon(
   return ok({ pokemon: updated, summary: result.summary });
 }
 
-/** Sposta il Pokémon a un altro dei propri allenatori. */
-export async function movePokemonToTrainer(id: string, trainerId: string): Promise<ActionResult> {
+/** Sposta il Pokémon a un altro dei propri allenatori: in squadra se c'è posto, se no nel box. */
+export async function movePokemonToTrainer(
+  id: string,
+  trainerId: string,
+): Promise<ActionResult<{ inBox: boolean }>> {
   const user = await currentUser();
   if (!user) return fail(NOT_FOUND);
   const access = await ownedPokemon(id, user.id);
   if (!access) return fail(NOT_FOUND);
   const target = await ownedTrainer(trainerId, user.id);
   if (!target) return fail("Allenatore non trovato");
+  if (target.id === access.pokemon.trainerId) return ok({ inBox: access.pokemon.inBox });
 
+  const slot = await nextSlot(target.id);
   await db
     .update(pokemon)
-    .set({ trainerId: target.id, position: await nextPosition(target.id) })
+    .set({ trainerId: target.id, ...slot })
     .where(eq(pokemon.id, id));
   revalidatePokemon(access.pokemon);
   revalidatePath(`/allenatori/${target.id}`);
-  return ok(undefined);
+  return ok({ inBox: slot.inBox });
 }
 
 export async function deletePokemon(id: string): Promise<ActionResult> {
@@ -209,41 +214,73 @@ export async function restPokemon(pokemonId: string): Promise<ActionResult> {
   return ok(undefined);
 }
 
+/** Squadra e box di un allenatore, nell'ordine scelto (Fase 9 e 10). */
+export interface TeamLayout {
+  team: string[];
+  box: string[];
+}
+
+function revalidateTrainer(trainer: Trainer) {
+  revalidatePath(`/allenatori/${trainer.id}`);
+  revalidatePath("/allenatori");
+  revalidatePath("/pokemon/miei");
+  const campaignId = trainer.npcCampaignId ?? trainer.campaignId;
+  if (campaignId) revalidatePath(`/campagne/${campaignId}`);
+}
+
 /**
- * Riordino della squadra (Fase 9): `orderedIds` deve contenere esattamente i Pokémon
- * dell'allenatore. Solo il proprietario, non a scheda bloccata.
+ * Riordino della squadra e del box (Fasi 9 e 10): insieme devono contenere esattamente i
+ * Pokémon dell'allenatore, la squadra al massimo TEAM_SIZE. Solo il proprietario, non a
+ * scheda bloccata.
  */
-export async function reorderPokemon(
-  trainerId: string,
-  orderedIds: string[],
-): Promise<ActionResult> {
+export async function reorderPokemon(trainerId: string, layout: TeamLayout): Promise<ActionResult> {
   const user = await currentUser();
   if (!user) return fail(NOT_FOUND);
   const trainer = await ownedTrainer(trainerId, user.id);
   if (!trainer) return fail(NOT_FOUND);
   if (trainer.locked) return fail(LOCKED);
+  const team = Array.isArray(layout?.team) ? layout.team : null;
+  const box = Array.isArray(layout?.box) ? layout.box : null;
+  if (!team || !box) return fail("Ordine non valido");
+  if (team.length > TEAM_SIZE) return fail(TEAM_FULL);
 
   const current = await db
     .select({ id: pokemon.id })
     .from(pokemon)
     .where(eq(pokemon.trainerId, trainer.id));
   const ids = new Set(current.map((p) => p.id));
+  const ordered = [...team, ...box];
   const valid =
-    Array.isArray(orderedIds) &&
-    orderedIds.length === ids.size &&
-    new Set(orderedIds).size === ids.size &&
-    orderedIds.every((id) => ids.has(id));
+    ordered.length === ids.size &&
+    new Set(ordered).size === ids.size &&
+    ordered.every((id) => ids.has(id));
   if (!valid) return fail("La squadra è cambiata: ricarica la pagina e riprova");
 
   await db.transaction(async (tx) => {
-    for (const [position, id] of orderedIds.entries()) {
-      await tx.update(pokemon).set({ position }).where(eq(pokemon.id, id));
+    for (const [position, id] of ordered.entries()) {
+      await tx
+        .update(pokemon)
+        .set({ position, inBox: position >= team.length })
+        .where(eq(pokemon.id, id));
     }
   });
-  revalidatePath(`/allenatori/${trainer.id}`);
-  revalidatePath("/allenatori");
-  revalidatePath("/pokemon/miei");
-  const campaignId = trainer.npcCampaignId ?? trainer.campaignId;
-  if (campaignId) revalidatePath(`/campagne/${campaignId}`);
+  revalidateTrainer(trainer);
+  return ok(undefined);
+}
+
+/** "Metti nel box" / "Porta in squadra" dalla scheda Pokémon: va in fondo all'altro gruppo. */
+export async function setPokemonInBox(id: string, inBox: boolean): Promise<ActionResult> {
+  const user = await currentUser();
+  if (!user) return fail(NOT_FOUND);
+  const access = await ownedPokemon(id, user.id);
+  if (!access) return fail(NOT_FOUND);
+  const p = access.pokemon;
+  if (p.inBox === inBox) return ok(undefined);
+  const slot = await nextSlot(p.trainerId);
+  if (!inBox && slot.inBox) return fail(TEAM_FULL);
+
+  await db.update(pokemon).set({ inBox, position: slot.position }).where(eq(pokemon.id, id));
+  revalidatePokemon(p);
+  revalidateTrainer(access.trainer);
   return ok(undefined);
 }

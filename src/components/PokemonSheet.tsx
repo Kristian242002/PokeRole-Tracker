@@ -10,6 +10,7 @@ import {
   movePokemonToTrainer,
   rankUp,
   restPokemon,
+  setPokemonInBox,
   setPokemonImage,
   setPokemonPlayState,
   updatePokemon,
@@ -112,6 +113,7 @@ export function PokemonSheet(props: PokemonSheetProps) {
   );
   const [busy, startBusy] = useTransition();
   const [trainerId, setTrainerId] = useState(p.trainerId);
+  const [inBox, setInBox] = useState(p.inBox);
   const [image, setImage] = useState(p.image);
 
   const d = sheet.draft;
@@ -197,6 +199,21 @@ export function PokemonSheet(props: PokemonSheetProps) {
       const result = await movePokemonToTrainer(p.id, id);
       if (!result.ok) {
         setTrainerId(previous);
+        sheet.setError(result.error);
+        sheet.setStatus("error");
+        return;
+      }
+      setInBox(result.data.inBox);
+    });
+  }
+
+  function changePlace(box: boolean) {
+    const previous = inBox;
+    setInBox(box);
+    startBusy(async () => {
+      const result = await setPokemonInBox(p.id, box);
+      if (!result.ok) {
+        setInBox(previous);
         sheet.setError(result.error);
         sheet.setStatus("error");
       }
@@ -342,6 +359,21 @@ export function PokemonSheet(props: PokemonSheetProps) {
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
+                <label htmlFor="pk-place" className="label">
+                  Posto
+                </label>
+                <select
+                  id="pk-place"
+                  className="sheet-field"
+                  value={inBox ? "box" : "team"}
+                  disabled={readOnly || busy}
+                  onChange={(e) => changePlace(e.target.value === "box")}
+                >
+                  <option value="team">In squadra</option>
+                  <option value="box">Nel box</option>
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
                 <label htmlFor="pk-rank" className="label">
                   Rank
                 </label>
@@ -395,7 +427,7 @@ export function PokemonSheet(props: PokemonSheetProps) {
                   ))}
                 </select>
               </div>
-              <div className="flex flex-col gap-1.5">
+              <div className="col-span-2 flex flex-col gap-1.5 lg:col-span-3">
                 <label htmlFor="pk-item" className="label">
                   Strumento tenuto
                 </label>

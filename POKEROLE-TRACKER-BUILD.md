@@ -423,6 +423,7 @@ pokemon
   happiness integer default 2        // 0–5
   loyalty integer default 2          // 0–5
   position integer default 0         // ordine nella squadra (Fase 9): position, poi created_at; i nuovi in fondo
+  in_box boolean default false       // nel box (Fase 10): la squadra ha al massimo 6 Pokémon
   notes text default ''
   locked boolean default false
   created_at, updated_at
@@ -558,14 +559,14 @@ Navigazione principale: Pokédex · Mosse · Strumenti · Allenatori · I miei P
 ### 10.6 Scheda allenatore `/allenatori/[id]`
 
 In gioco: HP (Vitality + 4) e Will (Insight + 3) attuali/massimi con −/+ grandi; stati; penalità da dolore.
-Scheda: ritratto (caricabile), nome, età, rank (tendina con icone; per l'allenatore il rank si cambia solo a mano), soldi, attributi, sociali, skill (§6.3), zaino (testo libero), **codice campagna** (campo + "Collega"/"Scollega"; mostra il nome della campagna collegata), note, elenco dei suoi Pokémon (riquadri con HP), "Aggiungi Pokémon" (ricerca nel Pokédex), riquadro avvisi, lucchetto, elimina (con conferma).
+Scheda: ritratto (caricabile), nome, età, rank (tendina con icone; per l'allenatore il rank si cambia solo a mano), soldi, attributi, sociali, skill (§6.3), zaino (testo libero), **codice campagna** (campo + "Collega"/"Scollega"; mostra il nome della campagna collegata), note, Squadra (al massimo 6 Pokémon, riquadri con HP), "Aggiungi Pokémon" (ricerca nel Pokédex), Box (Fase 10), riquadro avvisi, lucchetto, elimina (con conferma).
 In sola lettura (master): stessa pagina senza controlli di modifica.
 
 ### 10.7 I miei Pokémon `/pokemon/miei`
 
 - Griglia unica di tutti i Pokémon di tutti gli allenatori dell'utente (non quelli NPC delle campagne): immagine, soprannome (o nome specie), specie, rank. **Niente nome allenatore nel riquadro.**
 - Ricerca per nome/specie; filtro per allenatore. Clic → scheda.
-- Nessuna divisione squadra/box.
+- Squadra e box insieme (la divisione si vede nella scheda allenatore, Fase 10).
 
 ### 10.8 Scheda Pokémon `/pokemon/[id]`
 
@@ -703,7 +704,7 @@ Organizzate in `src/lib/actions/<dominio>.ts` con `"use server"`. Ogni azione: l
 
 - **account**: `register`, `login`, `logout`
 - **trainers**: `createTrainer`, `updateTrainer`, `deleteTrainer`, `setTrainerPlayState` (hp, will, statuses — salvataggio immediato), `joinCampaign(code)`, `leaveCampaign`, `restTrainer(trainerId)` (Fase 8), `setTrainerImage`
-- **pokemon**: `createPokemon(trainerId, speciesId)`, `updatePokemon`, `deletePokemon`, `setPokemonPlayState`, `rankUp` (rank successivo), `evolvePokemon(toSpeciesId)` (usa `lib/evolution.ts`), `movePokemonToTrainer(trainerId)` (tra i propri), `restPokemon(pokemonId)` (Fase 8), `reorderPokemon(trainerId, orderedIds)` (Fase 9), `setPokemonImage`
+- **pokemon**: `createPokemon(trainerId, speciesId)`, `updatePokemon`, `deletePokemon`, `setPokemonPlayState`, `rankUp` (rank successivo), `evolvePokemon(toSpeciesId)` (usa `lib/evolution.ts`), `movePokemonToTrainer(trainerId)` (tra i propri), `restPokemon(pokemonId)` (Fase 8), `reorderPokemon(trainerId, {team, box})` (Fasi 9 e 10), `setPokemonInBox(id, inBox)` (Fase 10), `setPokemonImage`
 - **fanmade**: `createFanmade`, `updateFanmade`, `deleteFanmade`
 - **campaigns**: `createCampaign`, `updateCampaign`, `deleteCampaign`, `regenerateCode`, `removePlayer(trainerId)`, `createNpcTrainer`, `sendPokemonTo(pokemonId, playerTrainerId)`
 - **generator**: `saveGenerated(campaignId, trainerId, generated)` (valida che il Pokémon sia coerente: specie esistente, rank valido), `sendGenerated(campaignId, playerTrainerId, generated)`
@@ -796,6 +797,16 @@ Ogni fase si chiude con: `typecheck`, `lint`, `test`, `test:e2e` (scenari della 
 - Disattivato a scheda bloccata e nella vista in sola lettura del master.
 - ✅ E2E: sposta il terzo Pokémon al primo posto (tastiera; su desktop anche col mouse), ricarica, l'ordine resta (anche in I miei Pokémon).
 
+**Fase 10 — Squadra e Box**
+
+- Squadra di al massimo 6 Pokémon (`TEAM_SIZE`); gli altri stanno nel box. Colonna `in_box` (§7); la migrazione mette nel box quelli oltre il sesto degli allenatori esistenti.
+- Un Pokémon che arriva a un allenatore (creato, generato, spostato, inviato dal master) va in fondo alla squadra se c'è posto, altrimenti in fondo al box.
+- Scheda allenatore: "Squadra n/6", "Aggiungi Pokémon", poi "Box" (con un riquadro vuoto su cui trascinare quando il box è vuoto). Trascinamento come nella Fase 9, anche da un gruppo all'altro; la squadra piena non accetta altri Pokémon (messaggio).
+- Scheda Pokémon: campo "Posto" (In squadra / Nel box); se la squadra è piena dà errore.
+- Anteprima in "I miei allenatori": solo gli sprite della squadra e "n in squadra · m nel box". Nella campagna i Pokémon nel box sono indicati.
+- Riposo (Fase 8) vale per tutti i Pokémon, anche quelli nel box.
+- ✅ E2E: 7 Pokémon → il settimo nel box; anteprima con 6; squadra piena rifiuta; "Nel box" dalla scheda; su desktop trascinamento dal box alla squadra, l'ordine resta dopo la ricarica.
+
 ---
 
 ## 16. Test
@@ -844,4 +855,4 @@ git add data && git commit -m "Aggiorna dati Pokérole" && git push
 
 ## 19. Fuori scope (deciso)
 
-Calcolatore di debolezze/resistenze; mosse fanmade; strumenti fanmade; PNG del master visibili ai giocatori; diario/appunti di sessione; il master che modifica le schede dei giocatori; tiro dei dadi nell'app; divisione squadra/box.
+Calcolatore di debolezze/resistenze; mosse fanmade; strumenti fanmade; PNG del master visibili ai giocatori; diario/appunti di sessione; il master che modifica le schede dei giocatori; tiro dei dadi nell'app; scambi di Pokémon tra giocatori.

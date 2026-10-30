@@ -42,6 +42,7 @@ export default async function TrainerPage({ params }: Params) {
       rank: p.rank,
       hp: shownCurrent(p.currentHp, hpMax),
       hpMax,
+      inBox: p.inBox,
     };
   });
 

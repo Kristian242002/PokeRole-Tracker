@@ -1,16 +1,25 @@
 import "server-only";
-import { asc, eq, max } from "drizzle-orm";
+import { and, asc, count, eq, max } from "drizzle-orm";
 import { db } from "@/db";
 import { pokemon } from "@/db/schema";
+import { TEAM_SIZE } from "@/lib/rules";
 
-/** Ordine dei Pokémon di un allenatore (Fase 9): position, poi data di creazione. */
-export const teamOrder = [asc(pokemon.position), asc(pokemon.createdAt)];
+/** Ordine dei Pokémon di un allenatore: prima la squadra, poi il box (Fase 10); position, poi created_at. */
+export const teamOrder = [asc(pokemon.inBox), asc(pokemon.position), asc(pokemon.createdAt)];
 
-/** Posizione per un Pokémon che entra nella squadra: in fondo. */
-export async function nextPosition(trainerId: string): Promise<number> {
-  const [row] = await db
+/**
+ * Posto per un Pokémon che arriva a un allenatore (creato, generato, spostato, inviato):
+ * in fondo alla squadra se c'è posto, altrimenti in fondo al box.
+ */
+export async function nextSlot(trainerId: string): Promise<{ position: number; inBox: boolean }> {
+  const [last] = await db
     .select({ last: max(pokemon.position) })
     .from(pokemon)
     .where(eq(pokemon.trainerId, trainerId));
-  return row?.last === null || row?.last === undefined ? 0 : row.last + 1;
+  const [team] = await db
+    .select({ n: count() })
+    .from(pokemon)
+    .where(and(eq(pokemon.trainerId, trainerId), eq(pokemon.inBox, false)));
+  const position = last?.last === null || last?.last === undefined ? 0 : last.last + 1;
+  return { position, inBox: (team?.n ?? 0) >= TEAM_SIZE };
 }

@@ -3,6 +3,7 @@ export type ActionResult<T = undefined> = { ok: true; data: T } | { ok: false; e
 
 export const NOT_FOUND = "Scheda non trovata";
 export const LOCKED = "La scheda è bloccata: sbloccala con il lucchetto per modificarla";
+export const TEAM_FULL = "La squadra è piena (6 Pokémon): metti prima qualcuno nel box";
 
 export function fail(error: string): { ok: false; error: string } {
   return { ok: false, error };

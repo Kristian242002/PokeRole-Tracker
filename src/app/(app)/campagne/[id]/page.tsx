@@ -70,6 +70,7 @@ export default async function CampaignPage({ params }: Params) {
           rank: p.rank,
           hp: shownCurrent(p.currentHp, hpMax),
           hpMax,
+          inBox: p.inBox,
         };
       });
   const targets = players.map((t) => ({ id: t.id, name: t.name, user: t.user }));
@@ -158,6 +159,7 @@ export default async function CampaignPage({ params }: Params) {
                         <span className="truncate font-extrabold">{p.name}</span>
                         <span className="truncate text-[13px] font-bold text-muted">
                           {p.species} · {p.rank} · HP {p.hp}/{p.hpMax}
+                          {p.inBox && " · nel box"}
                         </span>
                       </Link>
                       <SendToButton pokemonId={p.id} pokemonName={p.name} players={targets} />
@@ -207,6 +209,7 @@ export default async function CampaignPage({ params }: Params) {
                         <Sprite image={p.image} name={p.species} size={26} />
                       </span>
                       {p.name} · HP {p.hp}/{p.hpMax}
+                      {p.inBox && " · box"}
                     </Link>
                   ))}
                 </div>

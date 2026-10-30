@@ -37,7 +37,7 @@ test("riordino della squadra: il terzo al primo posto, l'ordine resta", async ({
   await page.keyboard.press("Space");
   await expect(live).toContainText("posizione 3 di 3");
   await page.keyboard.press("ArrowUp");
-  await expect(live).toHaveText("Bulbasaur sopra la posizione 1 di 3.");
+  await expect(live).toHaveText("Bulbasaur sopra la posizione 1 di 3 nella squadra.");
   await page.keyboard.press("Space");
   await saved;
   expect(await names(page)).toEqual(["Bulbasaur", "Barboach", "Pikachu"]);

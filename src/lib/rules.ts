@@ -274,6 +274,9 @@ export function attributeLimitBonus(rank: string | undefined): number {
   return rank === "Champion" ? 2 : 0;
 }
 
+/** Pokémon al massimo nella squadra di un allenatore; gli altri vanno nel box (Fase 10). */
+export const TEAM_SIZE = 6;
+
 /** HP massimi: allenatore Vitality + 4, Pokémon BaseHP + Vitality (+3 da Master). */
 export function maxHp(kind: SheetKind, vitality: number, baseHP = 0, rank?: string): number {
   return (kind === "trainer" ? vitality + 4 : baseHP + vitality) + masterBonus(rank);

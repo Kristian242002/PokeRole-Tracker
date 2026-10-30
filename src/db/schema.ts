@@ -116,6 +116,8 @@ export const pokemon = pgTable(
     loyalty: integer("loyalty").notNull().default(2),
     /** Ordine nella squadra dell'allenatore (Fase 9): position, poi created_at. */
     position: integer("position").notNull().default(0),
+    /** Nel box invece che in squadra (Fase 10): la squadra ha al massimo TEAM_SIZE Pokémon. */
+    inBox: boolean("in_box").notNull().default(false),
     notes: text("notes").notNull().default(""),
     locked: boolean("locked").notNull().default(false),
     createdAt: createdAt(),

@@ -21,7 +21,7 @@ import {
   skillKey,
 } from "@/lib/rules";
 import { getSpecies, type ResolvedSpecies } from "@/lib/species";
-import { nextPosition } from "@/lib/team-order";
+import { nextSlot } from "@/lib/team-order";
 import { fail, ok, type ActionResult } from "./result";
 
 const NATURE_NAMES = NATURES.map((n) => n.name);
@@ -155,7 +155,7 @@ async function insertGenerated(trainerId: string, input: unknown, userId: string
     .insert(pokemon)
     .values({
       trainerId,
-      position: await nextPosition(trainerId),
+      ...(await nextSlot(trainerId)),
       speciesId: species.id,
       rank: g.rank,
       gender: g.gender,
