@@ -137,17 +137,43 @@ export function TeamGrid({
     return `posizione ${Math.max(index, 1)} di ${Math.max(list.length, 1)} ${GROUP_LABEL[group]}`;
   };
 
-  // Prima un box (o una squadra) vuoto sotto il puntatore, poi il Pokémon più vicino.
+  // Bersaglio: il gruppo sotto il puntatore (o sotto il riquadro trascinato, da tastiera), poi
+  // il Pokémon più vicino di quel gruppo. Subito dopo un passaggio squadra ↔ box il bersaglio
+  // resta quello di prima finché la griglia non si è risistemata: altrimenti il Pokémon può
+  // rimbalzare all'infinito tra i due gruppi (React #185).
+  const lastOver = useRef<UniqueIdentifier | null>(null);
+  const justMoved = useRef(false);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => (justMoved.current = false));
+    return () => cancelAnimationFrame(frame);
+  }, [layout]);
   const collisionDetection: CollisionDetection = (args) => {
+    if (justMoved.current && lastOver.current) return [{ id: lastOver.current }];
     const groups = args.droppableContainers.filter((c) => isGroup(c.id));
-    const items = args.droppableContainers.filter((c) => !isGroup(c.id));
-    const hits = (args.pointerCoordinates ? pointerWithin : rectIntersection)({
+    const [hit] = (args.pointerCoordinates ? pointerWithin : rectIntersection)({
       ...args,
       droppableContainers: groups,
     });
-    const emptyGroup = hits.find((h) => layout[h.id as Group].length === 0);
-    if (emptyGroup) return [emptyGroup];
-    return closestCenter({ ...args, droppableContainers: items });
+    let found;
+    if (hit) {
+      const ids = layout[hit.id as Group];
+      found = ids.length
+        ? closestCenter({
+            ...args,
+            droppableContainers: args.droppableContainers.filter((c) => ids.includes(String(c.id))),
+          })
+        : [hit];
+    } else if (args.pointerCoordinates) {
+      // Tra un gruppo e l'altro: resta dov'era.
+      found = lastOver.current ? [{ id: lastOver.current }] : [];
+    } else {
+      found = closestCenter({
+        ...args,
+        droppableContainers: args.droppableContainers.filter((c) => !isGroup(c.id)),
+      });
+    }
+    lastOver.current = found[0]?.id ?? lastOver.current;
+    return found;
   };
 
   const sensors = useSensors(
@@ -172,6 +198,7 @@ export function TeamGrid({
     }
     const id = String(active.id);
     const target = layout[to];
+    justMoved.current = true;
     const index = isGroup(over.id) ? target.length : target.indexOf(String(over.id));
     setLayout({
       ...layout,
@@ -229,6 +256,7 @@ export function TeamGrid({
             // Il clic che il browser genera al rilascio non deve aprire la scheda.
             justDragged.current = true;
             before.current = layout;
+            lastOver.current = null;
             setError(null);
           }}
           onDragOver={onDragOver}

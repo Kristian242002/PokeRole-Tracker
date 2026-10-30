@@ -84,3 +84,66 @@ test("box: oltre 6 Pokémon si va nel box, l'anteprima mostra solo la squadra", 
     expect(await names(page, "Box")).toEqual(["Pikachu"]);
   }
 });
+
+test("box: trascinare nel box vuoto e di nuovo in squadra", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "trascinamento col mouse");
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await registerUser(page, uniqueUsername(testInfo, "y"));
+  await page.goto("/allenatori");
+  await page.getByLabel("Nuovo allenatore").fill("Brock");
+  await page.getByRole("button", { name: "Crea allenatore" }).click();
+  await expect(page).toHaveURL(/\/allenatori\/[0-9a-f-]{36}$/);
+  const trainerUrl = page.url();
+  for (const species of SPECIES.slice(0, 3)) {
+    await page.goto(trainerUrl);
+    await page.getByRole("searchbox", { name: "Aggiungi Pokémon" }).fill(species);
+    await page.getByRole("button", { name: new RegExp(`^${species}`) }).click();
+    await expect(page).toHaveURL(/\/pokemon\/[0-9a-f-]{36}$/);
+  }
+  await page.goto(trainerUrl);
+  await expect(page.getByRole("list", { name: "Squadra" })).toHaveAttribute("data-ready", "true");
+
+  const drag = async (from: { x: number; y: number }, to: { x: number; y: number }) => {
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(from.x + 10, from.y + 10, { steps: 4 });
+    await page.mouse.move(to.x, to.y, { steps: 20 });
+    await page.mouse.move(to.x + 4, to.y + 4, { steps: 10 });
+    await page.mouse.up();
+  };
+  const center = (b: { x: number; y: number; width: number; height: number }) => ({
+    x: b.x + b.width / 2,
+    y: b.y + b.height / 2,
+  });
+
+  // Nel box vuoto.
+  await page
+    .getByRole("list", { name: "Box" })
+    .evaluate((el) => el.scrollIntoView({ block: "center" }));
+  const first = center((await group(page, "Squadra").first().boundingBox())!);
+  const emptyBox = center((await page.getByRole("list", { name: "Box" }).boundingBox())!);
+  let saved = posted(page);
+  await drag(first, emptyBox);
+  await saved;
+  expect(errors).toEqual([]);
+  await page.reload();
+  expect(await names(page, "Squadra")).toEqual(["Bulbasaur", "Charmander"]);
+  expect(await names(page, "Box")).toEqual(["Pikachu"]);
+
+  // Di nuovo in squadra, in fondo.
+  await expect(page.getByRole("list", { name: "Squadra" })).toHaveAttribute("data-ready", "true");
+  await page
+    .getByRole("list", { name: "Box" })
+    .evaluate((el) => el.scrollIntoView({ block: "center" }));
+  const boxed = center((await group(page, "Box").first().boundingBox())!);
+  const last = center((await group(page, "Squadra").last().boundingBox())!);
+  saved = posted(page);
+  await drag(boxed, last);
+  await saved;
+  expect(errors).toEqual([]);
+  await page.reload();
+  expect(await names(page, "Box")).toEqual([]);
+  expect(errors).toEqual([]);
+});
