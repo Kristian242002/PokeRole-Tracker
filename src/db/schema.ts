@@ -160,3 +160,25 @@ export const campaignBiomes = pgTable(
   },
   (t) => [primaryKey({ columns: [t.campaignId, t.biome, t.speciesId] })],
 );
+
+/** Partecipante di una battaglia (Fase 11): un Pokémon della campagna o uno senza scheda. */
+export type BattleCombatant = {
+  /** Identificativo della riga nella battaglia. */
+  key: string;
+  /** Pokémon con scheda; null = partecipante aggiunto a mano (es. un selvatico). */
+  pokemonId: string | null;
+  name: string;
+  /** Totale dell'iniziativa scritto dal master; null = non ancora tirata. */
+  initiative: number | null;
+  ko: boolean;
+};
+
+/** Battaglia in corso di una campagna (Fase 11): una sola, solo per il master; i KO in fondo. */
+export const battles = pgTable("battles", {
+  campaignId: uuid("campaign_id")
+    .primaryKey()
+    .references(() => campaigns.id, { onDelete: "cascade" }),
+  combatants: jsonb("combatants").$type<BattleCombatant[]>().notNull().default([]),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});

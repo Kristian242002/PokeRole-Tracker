@@ -65,6 +65,17 @@ for (const scheme of ["light", "dark"] as const) {
     await page.goto(`${campaign}/biomi`);
     await page.getByRole("button", { name: /Bosco/ }).click();
     await audit(page, "biomi", found);
+    await page.goto(`${campaign}/battaglia`);
+    await audit(page, "battaglia (scelta)", found);
+    await page.getByLabel("Senza scheda (es. un selvatico)").fill("Zubat");
+    await page.getByRole("button", { name: "Metti in lista" }).click();
+    await page.getByLabel("Senza scheda (es. un selvatico)").fill("Golbat");
+    await page.getByRole("button", { name: "Metti in lista" }).click();
+    await page.getByRole("button", { name: "Inizia battaglia (2)" }).click();
+    await page.getByLabel("Iniziativa di Zubat").fill("5");
+    await page.getByRole("button", { name: "Golbat KO" }).click();
+    await expect(page.getByTestId("knocked-out")).toHaveCount(1);
+    await audit(page, "battaglia (in corso, con KO)", found);
 
     for (const path of [
       "/dex",

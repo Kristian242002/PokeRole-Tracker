@@ -94,12 +94,13 @@ export default async function CampaignPage({ params }: Params) {
               [
                 ["generatore", "Generatore", "Pokémon selvatici", "#ffe1e5"],
                 ["biomi", "Biomi", "Specie e rarità", "#ddeedf"],
+                ["battaglia", "Battaglia", "Ordine di iniziativa", "#dfe6ff"],
               ] as const
             ).map(([path, title, hint, bg]) => (
               <Link
                 key={path}
                 href={`/campagne/${campaign.id}/${path}`}
-                className="card flex flex-col gap-1 p-4 text-[#1b2440] no-underline hover:text-[#1b2440]"
+                className={`card flex flex-col gap-1 p-4 text-[#1b2440] no-underline hover:text-[#1b2440] ${path === "battaglia" ? "col-span-2" : ""}`}
                 style={{ background: bg }}
               >
                 <span className="font-display text-xl font-semibold">{title}</span>

@@ -444,6 +444,11 @@ campaign_biomes      // solo le correzioni del master alla tabella automatica
   species_id text not null
   mode text not null          // 'add' | 'remove'
   rarity text null            // 'common' | 'uncommon' | 'rare' (override)
+
+battles              // battaglia in corso della campagna (Fase 11), una sola
+  campaign_id uuid pk → campaigns.id on delete cascade
+  combatants jsonb            // [{key, pokemonId|null, name, initiative|null, ko}]: ordine di gioco, poi i KO
+  created_at, updated_at
   primary key (campaign_id, biome, species_id)
 ```
 
@@ -475,7 +480,7 @@ Regole:
 | Vedere schede dei giocatori collegati (**sola lettura**) | master                                                      |
 | Rimuovere un giocatore (azzera `campaign_id`)            | master                                                      |
 | Invia a… un Pokémon a un giocatore collegato             | master                                                      |
-| Generatore, Biomi                                        | master                                                      |
+| Generatore, Biomi, Battaglia                             | master                                                      |
 | CRUD fanmade                                             | autore (vedere: autore o se condiviso)                      |
 
 Accessi non permessi → **404** (non 403), per non rivelare l'esistenza delle risorse.
@@ -600,7 +605,7 @@ Scheda:
 - **Allenatori del master**: crea/modifica/elimina; ognuno con i suoi Pokémon (stesse schede §10.6/§10.8, stesse rotte, permessi del master). Visibili **solo al master**.
 - **Giocatori collegati**: allenatori con i loro Pokémon, apertura in sola lettura, "Rimuovi dalla campagna".
 - Su ogni Pokémon del master: **"Invia a…"** → scelta tra gli allenatori dei giocatori collegati → conferma → spostamento.
-- Link a Generatore e Biomi.
+- Link a Generatore, Biomi e Battaglia (Fase 11).
 
 ### 10.12 Generatore e Biomi
 
@@ -707,6 +712,7 @@ Organizzate in `src/lib/actions/<dominio>.ts` con `"use server"`. Ogni azione: l
 - **pokemon**: `createPokemon(trainerId, speciesId)`, `updatePokemon`, `deletePokemon`, `setPokemonPlayState`, `rankUp` (rank successivo), `evolvePokemon(toSpeciesId)` (usa `lib/evolution.ts`), `movePokemonToTrainer(trainerId)` (tra i propri), `restPokemon(pokemonId)` (Fase 8), `reorderPokemon(trainerId, {team, box})` (Fasi 9 e 10), `setPokemonInBox(id, inBox)` (Fase 10), `setPokemonImage`
 - **fanmade**: `createFanmade`, `updateFanmade`, `deleteFanmade`
 - **campaigns**: `createCampaign`, `updateCampaign`, `deleteCampaign`, `regenerateCode`, `removePlayer(trainerId)`, `createNpcTrainer`, `sendPokemonTo(pokemonId, playerTrainerId)`
+- **battles**: `saveBattle(campaignId, {combatants})` (solo Pokémon della campagna), `endBattle(campaignId)` (Fase 11)
 - **generator**: `saveGenerated(campaignId, trainerId, generated)` (valida che il Pokémon sia coerente: specie esistente, rank valido), `sendGenerated(campaignId, playerTrainerId, generated)`
 - **biomes**: `addToBiome`, `removeFromBiome`, `setRarity`, `resetBiome`
 - **images**: route handler `/api/upload` per `handleUpload` di Vercel Blob
@@ -806,6 +812,17 @@ Ogni fase si chiude con: `typecheck`, `lint`, `test`, `test:e2e` (scenari della 
 - Anteprima in "I miei allenatori": solo gli sprite della squadra e "n in squadra · m nel box". Nella campagna i Pokémon nel box sono indicati.
 - Riposo (Fase 8) vale per tutti i Pokémon, anche quelli nel box.
 - ✅ E2E: 7 Pokémon → il settimo nel box; anteprima con 6; squadra piena rifiuta; "Nel box" dalla scheda; su desktop trascinamento dal box alla squadra, l'ordine resta dopo la ricarica.
+
+**Fase 11 — Battaglia (ordine di iniziativa)**
+
+- Pagina `/campagne/[id]/battaglia`, solo per il master (per gli altri 404); riquadro "Battaglia" nella pagina della campagna. I giocatori non la vedono.
+- Partecipanti: solo Pokémon (non allenatori), scelti tra quelli **in squadra** degli NPC del master e dei giocatori collegati (raggruppati per allenatore, con "Tutti"), più partecipanti senza scheda (solo nome, es. un selvatico). Si possono aggiungere anche a battaglia iniziata.
+- Niente dadi nell'app (§19): il master scrive il totale dell'iniziativa tirato al tavolo; ogni riga mostra la base (Dexterity + Alert, +3 da Master), HP e stati letti dalla scheda.
+- "Ordina per iniziativa": dal più alto al più basso, senza iniziativa in fondo, i pari restano nell'ordine attuale. Poi riordino a mano trascinando la maniglia (mouse, dito, tastiera spazio/frecce).
+- Niente turni né round: la pagina è solo l'ordine. "KO" toglie subito il Pokémon dall'ordine e lo mette nella zona **KO** sotto, che l'ordinamento ignora; "Rientra" lo rimette in fondo all'ordine. "Togli", "Fine battaglia" (con conferma, cancella la battaglia).
+- Salvataggio automatico (`battles`, §7) dopo ~400 ms; dopo la ricarica tutto è com'era. I Pokémon che lasciano la campagna escono dalla battaglia.
+- Logica pura in `lib/battle.ts` (`sortByInitiative`, `setKo`) con test unitari.
+- ✅ E2E: scelta, iniziative, ordina, KO nella zona a parte e ignorato dall'ordinamento, riordino da tastiera, ricarica, rientra, togli, fine; 404 per chi non è master.
 
 ---
 
